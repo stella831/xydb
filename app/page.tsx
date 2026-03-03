@@ -1,7 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
 
-// 督办事项类型定义
 type TaskLevel = '一级' | '二级' | '三级'
 type TaskStatus = '进行中' | '已完成'
 
@@ -18,7 +17,6 @@ interface TaskItem {
   children?: TaskItem[]
 }
 
-// 完整督办数据（从截图完整提取）
 const taskData: TaskItem[] = [
   {
     id: 'task-1',
@@ -326,26 +324,24 @@ const taskData: TaskItem[] = [
   }
 ]
 
-// 级别颜色配置
 const levelColorMap: Record<TaskLevel, string> = {
   '一级': 'bg-purple-100 text-purple-700',
   '二级': 'bg-green-100 text-green-700',
   '三级': 'bg-orange-100 text-orange-700',
 }
 
-// 状态颜色配置
 const statusColorMap: Record<TaskStatus, string> = {
   '进行中': 'bg-blue-100 text-blue-700',
   '已完成': 'bg-green-100 text-green-700',
 }
 
 export default function SupervisePage() {
-  // 状态管理
   const [searchKeyword, setSearchKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<'全部' | TaskStatus>('全部')
+  const [deptFilter, setDeptFilter] = useState('全部')
+  const [levelFilter, setLevelFilter] = useState<'全部' | TaskLevel>('全部')
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(taskData.map(item => item.id)))
 
-  // 展开/折叠切换
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expandedIds)
     if (newExpanded.has(id)) {
@@ -356,7 +352,6 @@ export default function SupervisePage() {
     setExpandedIds(newExpanded)
   }
 
-  // 详情展开/折叠
   const [descExpandedIds, setDescExpandedIds] = useState<Set<string>>(new Set())
   const toggleDescExpand = (id: string) => {
     const newExpanded = new Set(descExpandedIds)
@@ -368,11 +363,9 @@ export default function SupervisePage() {
     setDescExpandedIds(newExpanded)
   }
 
-  // 筛选数据
   const filteredData = useMemo(() => {
     const filterTask = (tasks: TaskItem[]): TaskItem[] => {
       return tasks.filter(task => {
-        // 关键词匹配
         const matchKeyword = searchKeyword === '' 
           ? true 
           : task.title.includes(searchKeyword) 
@@ -381,13 +374,12 @@ export default function SupervisePage() {
             || task.finishStandard.includes(searchKeyword)
             || (task.description && task.description.includes(searchKeyword))
         
-        // 状态匹配
         const matchStatus = statusFilter === '全部' ? true : task.status === statusFilter
-
-        // 子项匹配
+        const matchDept = deptFilter === '全部' ? true : task.department === deptFilter
+        const matchLevel = levelFilter === '全部' ? true : task.level === levelFilter
         const hasMatchChildren = task.children ? filterTask(task.children).length > 0 : false
 
-        return (matchKeyword && matchStatus) || hasMatchChildren
+        return (matchKeyword && matchStatus && matchDept && matchLevel) || hasMatchChildren
       }).map(task => {
         if (!task.children) return task
         return {
@@ -397,9 +389,8 @@ export default function SupervisePage() {
       })
     }
     return filterTask(taskData)
-  }, [searchKeyword, statusFilter])
+  }, [searchKeyword, statusFilter, deptFilter, levelFilter])
 
-  // 递归渲染任务项
   const renderTaskItem = (task: TaskItem, level: number = 0) => {
     const isExpanded = expandedIds.has(task.id)
     const isDescExpanded = descExpandedIds.has(task.id)
@@ -408,9 +399,7 @@ export default function SupervisePage() {
     return (
       <div key={task.id} className={`mb-4 ${level > 0 ? 'ml-6' : ''}`}>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          {/* 任务头部 */}
           <div className="flex items-start gap-3 mb-2">
-            {/* 展开箭头 */}
             <button 
               onClick={() => toggleExpand(task.id)}
               className={`mt-1 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -420,12 +409,10 @@ export default function SupervisePage() {
               </svg>
             </button>
 
-            {/* 级别标签 */}
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${levelColorMap[task.level]}`}>
               {task.level}
             </span>
 
-            {/* 标题 */}
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-800">{task.title}</h3>
               <div className="flex flex-wrap gap-2 mt-1 text-sm text-gray-500">
@@ -435,16 +422,13 @@ export default function SupervisePage() {
               </div>
             </div>
 
-            {/* 状态标签 */}
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColorMap[task.status]}`}>
               {task.status}
             </span>
 
-            {/* 截止日期 */}
             <span className="text-sm text-gray-500 whitespace-nowrap">{task.deadline}</span>
           </div>
 
-          {/* 办结标准 */}
           <div className="ml-9 mb-2">
             <p className="text-sm text-gray-600">
               <span className="font-medium">办结标准：</span>
@@ -452,7 +436,6 @@ export default function SupervisePage() {
             </p>
           </div>
 
-          {/* 情况说明（可展开） */}
           {task.description && (
             <div className="ml-9 mb-1">
               <div className="text-sm text-gray-600">
@@ -469,7 +452,6 @@ export default function SupervisePage() {
           )}
         </div>
 
-        {/* 子任务 */}
         {hasChildren && isExpanded && (
           <div className="mt-2">
             {task.children!.map(child => renderTaskItem(child, level + 1))}
@@ -481,12 +463,32 @@ export default function SupervisePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8 max-w-5xl mx-auto">
-      {/* 页面标题 */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">商管督办通</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 text-center">督办事项细节</h1>
+        <p className="text-gray-500 text-center mt-1">共 196 个督办事项</p>
+      </div>
 
-      {/* 筛选栏 */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-        {/* 状态筛选 */}
+        <select
+          value={deptFilter}
+          onChange={(e) => setDeptFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="全部">全部事业部</option>
+          <option value="创新事业部">创新事业部</option>
+        </select>
+
+        <select
+          value={levelFilter}
+          onChange={(e) => setLevelFilter(e.target.value as any)}
+          className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="全部">全部等级</option>
+          <option value="一级">一级</option>
+          <option value="二级">二级</option>
+          <option value="三级">三级</option>
+        </select>
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -497,7 +499,6 @@ export default function SupervisePage() {
           <option value="已完成">已完成</option>
         </select>
 
-        {/* 搜索框 */}
         <div className="relative w-full md:w-96">
           <input
             type="text"
@@ -524,7 +525,6 @@ export default function SupervisePage() {
         </div>
       </div>
 
-      {/* 任务列表 */}
       <div>
         {filteredData.length > 0 ? (
           filteredData.map(task => renderTaskItem(task))
