@@ -208,6 +208,17 @@ export default function SuperviseSystem() {
   const [descExpandedIds, setDescExpandedIds] = useState<Set<string>>(new Set())
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null)
 
+  // 🔴 新增：递归统计总任务数（包含所有子任务）
+  const totalTaskCount = useMemo(() => {
+    const countTasks = (tasks: TaskItem[]): number => {
+      return tasks.reduce((total, task) => {
+        // 每个任务本身算1个，再加上子任务的数量
+        return total + 1 + (task.children ? countTasks(task.children) : 0)
+      }, 0)
+    }
+    return countTasks(taskData)
+  }, [taskData])
+
   // 登录逻辑
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -482,7 +493,8 @@ export default function SuperviseSystem() {
       {/* 页面标题 */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 text-center">督办事项细节</h1>
-        <p className="text-gray-500 text-center mt-1">共 196 个督办事项</p>
+        {/* 🔴 修改：替换硬编码的196为实际统计的总任务数 */}
+        <p className="text-gray-500 text-center mt-1">共 {totalTaskCount} 个督办事项</p>
       </div>
 
       {/* 筛选栏 */}
