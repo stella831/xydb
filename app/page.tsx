@@ -274,7 +274,7 @@ export default function SupervisePage() {
   const [levelDropdownOpen, setLevelDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-  // 全量任务初始数据
+  // 全量任务初始数据（已统一修改为物服事业部）
   const defaultTaskData: TaskItem[] = [
     { id:1, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体营业收入4678万元；6月30日前完成9356万元；9月30日前完成22455万元；12月31日前完成37425.4万元', description:'暂无说明' },
     { id:2, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体利润总额209.25万元；6月30日前完成502.19万元；9月30日前完成1004.38万元；12月31日前完成1673.97万元', description:'暂无说明' },
@@ -299,17 +299,17 @@ export default function SupervisePage() {
     { id:21, taskLevel:'一级', taskName:'海峡新岸仙岳路跨线桥推进工作', subTaskName:'仙岳五通跨线桥推进', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'商服事业部', handler:'周晓萍', finishStandard:'12月31日前完成外部主管部门审批', description:'暂无说明' },
     { id:22, taskLevel:'一级', taskName:'商管与物管业务效能优化工作', subTaskName:'组织架构整合优化', status:getDefaultTaskStatus('2026/06/30'), deadline:'2026/06/30', department:'党务人力行政部', handler:'林杉', finishStandard:'6月30日前完成组织架构优化并实施', description:'暂无说明' },
     { id:23, taskLevel:'一级', taskName:'翔业商管与兆翔置业工作界面明确', subTaskName:'工作边界梳理、经营指明确及委托管理合同签订', status:getDefaultTaskStatus('2026/06/30'), deadline:'2026/06/30', department:'商服事业部', handler:'胡妍', finishStandard:'6月30日前完成兆翔置业资产委托合同签订', description:'暂无说明' },
-    { id:24, taskLevel:'一级', taskName:'机场城市一体化推进工作', subTaskName:'机场城市一体化', status:getDefaultTaskStatus('2026/09/30'), deadline:'2026/09/30', department:'物业事业部', handler:'林健', finishStandard:'9月30日前完成物业服务方案并通过审议', description:'暂无说明' },
+    { id:24, taskLevel:'一级', taskName:'机场城市一体化推进工作', subTaskName:'机场城市一体化', status:getDefaultTaskStatus('2026/09/30'), deadline:'2026/09/30', department:'物服事业部', handler:'林健', finishStandard:'9月30日前完成物业服务方案并通过审议', description:'暂无说明' },
     { id:25, taskLevel:'一级', taskName:'“一线“高崎片区战略布局推进工作', subTaskName:'打造高崎片区文化产业新IP', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'商服事业部', handler:'李泉', finishStandard:'12月31日前举办“厦门美术季”', description:'暂无说明' },
     { id:26, taskLevel:'一级', taskName:'厦泉金先行示范区战略先行布局工作', subTaskName:'“一岛”大嶝岛战略布局推进', status:getDefaultTaskStatus('2026/11/30'), deadline:'2026/11/30', department:'免税事业部', handler:'林涛', finishStandard:'11月30日前形成阶段性研究报告', description:'暂无说明' },
     { id:27, taskLevel:'一级', taskName:'翔安机场免税店转场运营推进工作', subTaskName:'翔安机场免税店转场运营', status:getDefaultTaskStatus('2026/12/24'), deadline:'2026/12/24', department:'免税事业部', handler:'林宇恒', finishStandard:'12月24日前推进完成免税店开业运营', description:'暂无说明' },
     { id:28, taskLevel:'一级', taskName:'商管集团数字化推进工作', subTaskName:'商业管理系统上线', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'财务管理部', handler:'李森元', finishStandard:'12月31日前完成ERP系统财务管理模块上线', description:'暂无说明' },
-    { id:29, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'调试勘查', status:getDefaultTaskStatus('2026/05/31'), deadline:'2026/05/31', department:'物业事业部', handler:'林健', finishStandard:'5月31日完成机电设备全量勘查并形成总结', description:'暂无说明' },
-    { id:30, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'开荒保洁招标', status:getDefaultTaskStatus('2026/06/30'), deadline:'2026/06/30', department:'物业事业部', handler:'林健', finishStandard:'6月30日完成中标单位最终确认', description:'暂无说明' },
-    { id:31, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'航站楼保洁、手推车招标', status:getDefaultTaskStatus('2026/09/30'), deadline:'2026/09/30', department:'物业事业部', handler:'林健', finishStandard:'9月30日完成中标单位确认并签约', description:'暂无说明' },
-    { id:32, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'建立机电设备运维体系', status:getDefaultTaskStatus('2026/09/20'), deadline:'2026/09/20', department:'物业事业部', handler:'林健', finishStandard:'9月20日完成运行手册定稿', description:'暂无说明' },
-    { id:33, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'机电设备保障', status:getDefaultTaskStatus('2026/06/10'), deadline:'2026/06/10', department:'物业事业部', handler:'林健', finishStandard:'6月10日前完成人员取证及演练整改', description:'暂无说明' },
-    { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:getDefaultTaskStatus('2026/06/10'), deadline:'2026/06/10', department:'物业事业部', handler:'林健', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
+    { id:29, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'调试勘查', status:getDefaultTaskStatus('2026/05/31'), deadline:'2026/05/31', department:'物服事业部', handler:'林健', finishStandard:'5月31日完成机电设备全量勘查并形成总结', description:'暂无说明' },
+    { id:30, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'开荒保洁招标', status:getDefaultTaskStatus('2026/06/30'), deadline:'2026/06/30', department:'物服事业部', handler:'林健', finishStandard:'6月30日完成中标单位最终确认', description:'暂无说明' },
+    { id:31, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'航站楼保洁、手推车招标', status:getDefaultTaskStatus('2026/09/30'), deadline:'2026/09/30', department:'物服事业部', handler:'林健', finishStandard:'9月30日完成中标单位确认并签约', description:'暂无说明' },
+    { id:32, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'建立机电设备运维体系', status:getDefaultTaskStatus('2026/09/20'), deadline:'2026/09/20', department:'物服事业部', handler:'林健', finishStandard:'9月20日完成运行手册定稿', description:'暂无说明' },
+    { id:33, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'机电设备保障', status:getDefaultTaskStatus('2026/06/10'), deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成人员取证及演练整改', description:'暂无说明' },
+    { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:getDefaultTaskStatus('2026/06/10'), deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
   ];
 
   // 任务列表状态（从localStorage读取修改后的数据）
@@ -341,6 +341,12 @@ export default function SupervisePage() {
     const depts = Array.from(new Set(taskList.map(item => item.department)));
     return ['全部事业部', ...depts];
   }, [taskList]);
+
+  // 等级下拉选项
+  const levelList = ['全部等级', '一级', '二级', '三级'];
+
+  // 状态下拉选项
+  const statusList = ['全部状态', '进行中', '已完成', '未完成', '已逾期', '即将到期'];
 
   // 顶部统计数据计算
   const stats = useMemo(() => {
@@ -430,7 +436,7 @@ export default function SupervisePage() {
         <p className="text-gray-500">共 {stats.total} 个督办事项</p>
       </div>
 
-      {/* 筛选区域（横向下拉，和参考图一致） */}
+      {/* 筛选区域 */}
       <div className="bg-white rounded-xl p-4 mb-4">
         <div className="flex flex-wrap gap-3 mb-4">
           {/* 事业部下拉 */}
@@ -479,7 +485,7 @@ export default function SupervisePage() {
             </button>
             {levelDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-10 min-w-[120px]">
-                {['全部等级', '一级', '二级', '三级'].map(level => (
+                {levelList.map(level => (
                   <div
                     key={level}
                     className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedLevel === level ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
@@ -510,7 +516,7 @@ export default function SupervisePage() {
             </button>
             {statusDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-10 min-w-[120px]">
-                {['全部状态', '进行中', '已完成', '未完成', '已逾期', '即将到期'].map(status => (
+                {statusList.map(status => (
                   <div
                     key={status}
                     className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedStatus === status ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
