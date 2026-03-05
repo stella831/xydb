@@ -1,0 +1,107 @@
+name: 督办任务到期统一提醒
+on:
+  schedule:
+    # 每天早上9点自动执行（UTC时间1点，对应北京时间9点，可按需修改）
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 支持手动点击触发测试
+
+jobs:
+  send-unified-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 安装Node.js环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 生成提醒邮件内容
+        id: generate-email-content
+        run: |
+          # 读取任务数据
+          TASK_DATA=$(cat public/tasks.json)
+          
+          # 生成邮件HTML内容
+          node -e "
+            const taskData = $TASK_DATA;
+            
+            // 和前端完全一致的状态计算规则
+            const getTaskStatus = (deadlineStr, baseStatus) => {
+              if (baseStatus === '已完成') return '已完成';
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const deadline = new Date(deadlineStr);
+              deadline.setHours(0, 0, 0, 0);
+              const diffDays = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (diffDays < 0) return '已逾期';
+              if (diffDays <= 7) return '即将到期';
+              return '进行中';
+            };
+
+            // 过滤需要提醒的任务（已逾期+即将到期）
+            const noticeTasks = taskData.filter(task => {
+              const status = getTaskStatus(task.deadline, task.baseStatus);
+              return status === '已逾期' || status === '即将到期';
+            });
+
+            // 生成邮件HTML
+            let htmlContent = `
+              <div style="font-family: 微软雅黑, Arial; max-width: 800px; margin: 0 auto;">
+                <h2 style="color: #165DFF; text-align: center;">📢 商管督办系统 每日任务到期提醒</h2>
+                <p style="font-size: 14px; color: #666;">以下为已逾期、或7天内即将到期的督办事项，请及时跟进处理：</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            `;
+
+            if (noticeTasks.length === 0) {
+              htmlContent += `<p style="text-align: center; color: #00b42a; font-size: 16px; padding: 20px 0;">✅ 今日无已逾期/即将到期的督办事项</p>`;
+            } else {
+              noticeTasks.forEach(task => {
+                const status = getTaskStatus(task.deadline, task.baseStatus);
+                const statusColor = status === '已逾期' ? '#f53f3f' : '#ff7d00';
+                htmlContent += `
+                  <div style="margin: 15px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa;">
+                    <h3 style="margin: 0 0 8px 0; color: #333;">${task.taskName} - ${task.subTaskName}</h3>
+                    <p style="margin: 5px 0; font-size: 14px;">
+                      <span style="font-weight: bold; color: #666;">当前状态：</span>
+                      <span style="color: ${statusColor}; font-weight: bold;">${status}</span>
+                    </p>
+                    <p style="margin: 5px 0; font-size: 14px;"><span style="font-weight: bold; color: #666;">截止日期：</span>${task.deadline}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><span style="font-weight: bold; color: #666;">负责部门：</span>${task.department}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><span style="font-weight: bold; color: #666;">经办人：</span>${task.handler}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><span style="font-weight: bold; color: #666;">办结标准：</span>${task.finishStandard}</p>
+                  </div>
+                `;
+              });
+            }
+
+            htmlContent += `
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #999; text-align: center;">本邮件由商管督办系统自动发送，请勿直接回复</p>
+              </div>
+            `;
+
+            // 将HTML内容写入临时文件
+            require('fs').writeFileSync('./email-content.html', htmlContent);
+          "
+
+      - name: 发送提醒邮件（企业邮箱适配版）
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # 【已修改】iport.com.cn企业邮箱通用SMTP服务器地址
+          server_address: smtp.iport.com.cn
+          # 企业邮箱SSL加密通用端口
+          server_port: 465
+          # 发件邮箱配置（从仓库密钥中读取，不会泄露）
+          username: ${{ secrets.SMTP_EMAIL }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          # 邮件主题
+          subject: 【商管督办系统】每日任务到期提醒
+          # 固定接收提醒的企业邮箱
+          to: gxiaojing@iport.com.cn
+          # 发件人名称
+          from: 商管督办系统
+          # 邮件内容
+          html_body: file://./email-content.html
