@@ -87,12 +87,12 @@ jobs:
             require('fs').writeFileSync('./email-content.html', htmlContent);
           "
 
-      - name: 发送提醒邮件（企业邮箱适配版）
+      - name: 发送提醒邮件（QQ邮箱发件版）
         uses: dawidd6/action-send-mail@v3
         with:
-          # 【已修改】iport.com.cn企业邮箱通用SMTP服务器地址
-          server_address: smtp.iport.com.cn
-          # 企业邮箱SSL加密通用端口
+          # QQ邮箱SMTP服务器地址
+          server_address: smtp.qq.com
+          # QQ邮箱SSL加密端口
           server_port: 465
           # 发件邮箱配置（从仓库密钥中读取，不会泄露）
           username: ${{ secrets.SMTP_EMAIL }}
