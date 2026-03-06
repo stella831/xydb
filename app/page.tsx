@@ -191,25 +191,12 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }: { task: TaskItem, onUpdate: (u
             <span className="text-gray-600">{task.department}</span>
             <span className="font-medium text-gray-700">{task.handler}</span>
             {isLoggedIn && !isEditing && (
-              <>
-                <span 
-                  onClick={() => setIsEditing(true)}
-                  className="ml-auto text-blue-600 font-medium cursor-pointer hover:underline"
-                >
-                  编辑
-                </span>
-                <span 
-                  onClick={() => {
-                    if(confirm('确定要退出登录吗？')) {
-                      localStorage.removeItem('isSuperviseLoggedIn');
-                      window.location.reload();
-                    }
-                  }}
-                  className="text-gray-600 font-medium cursor-pointer hover:underline"
-                >
-                  退出登录
-                </span>
-              </>
+              <span 
+                onClick={() => setIsEditing(true)}
+                className="ml-auto text-blue-600 font-medium cursor-pointer hover:underline"
+              >
+                编辑
+              </span>
             )}
             {isEditing && (
               <div className="ml-auto flex gap-3">
@@ -409,6 +396,24 @@ export default function SupervisePage() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  // 处理下拉框点击，阻止冒泡
+  const handleDropdownClick = (e: React.MouseEvent, type: 'dept' | 'level' | 'status') => {
+    e.stopPropagation();
+    if (type === 'dept') {
+      setDeptDropdownOpen(!deptDropdownOpen);
+      setLevelDropdownOpen(false);
+      setStatusDropdownOpen(false);
+    } else if (type === 'level') {
+      setLevelDropdownOpen(!levelDropdownOpen);
+      setDeptDropdownOpen(false);
+      setStatusDropdownOpen(false);
+    } else {
+      setStatusDropdownOpen(!statusDropdownOpen);
+      setDeptDropdownOpen(false);
+      setLevelDropdownOpen(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pb-10">
       {/* 登录弹窗 */}
@@ -420,12 +425,24 @@ export default function SupervisePage() {
       {/* 页面标题 */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">商管督办通</h1>
-        {!isLoggedIn && (
+        {!isLoggedIn ? (
           <button
             onClick={() => setShowLoginModal(true)}
             className="bg-blue-600 text-white px-4 py-1 rounded-lg text-sm hover:bg-blue-700"
           >
             登录编辑
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if(confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('isSuperviseLoggedIn');
+                window.location.reload();
+              }
+            }}
+            className="bg-gray-200 text-gray-700 px-4 py-1 rounded-lg text-sm hover:bg-gray-300"
+          >
+            退出登录
           </button>
         )}
       </div>
@@ -440,14 +457,10 @@ export default function SupervisePage() {
       <div className="bg-white rounded-xl p-4 mb-4">
         <div className="flex flex-wrap gap-3 mb-4">
           {/* 事业部下拉 */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
             <button
               className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[140px]"
-              onClick={() => {
-                setDeptDropdownOpen(!deptDropdownOpen);
-                setLevelDropdownOpen(false);
-                setStatusDropdownOpen(false);
-              }}
+              onClick={(e) => handleDropdownClick(e, 'dept')}
             >
               {selectedDepartment}
               <span className="text-gray-400">▼</span>
@@ -458,7 +471,8 @@ export default function SupervisePage() {
                   <div
                     key={dept}
                     className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedDepartment === dept ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedDepartment(dept);
                       setDeptDropdownOpen(false);
                     }}
@@ -471,14 +485,10 @@ export default function SupervisePage() {
           </div>
 
           {/* 等级下拉 */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
             <button
               className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[120px]"
-              onClick={() => {
-                setLevelDropdownOpen(!levelDropdownOpen);
-                setDeptDropdownOpen(false);
-                setStatusDropdownOpen(false);
-              }}
+              onClick={(e) => handleDropdownClick(e, 'level')}
             >
               {selectedLevel}
               <span className="text-gray-400">▼</span>
@@ -489,7 +499,8 @@ export default function SupervisePage() {
                   <div
                     key={level}
                     className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedLevel === level ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedLevel(level);
                       setLevelDropdownOpen(false);
                     }}
@@ -502,14 +513,10 @@ export default function SupervisePage() {
           </div>
 
           {/* 状态下拉 */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
             <button
               className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[120px]"
-              onClick={() => {
-                setStatusDropdownOpen(!statusDropdownOpen);
-                setDeptDropdownOpen(false);
-                setLevelDropdownOpen(false);
-              }}
+              onClick={(e) => handleDropdownClick(e, 'status')}
             >
               {selectedStatus}
               <span className="text-gray-400">▼</span>
@@ -520,7 +527,8 @@ export default function SupervisePage() {
                   <div
                     key={status}
                     className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedStatus === status ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedStatus(status);
                       setStatusDropdownOpen(false);
                     }}
