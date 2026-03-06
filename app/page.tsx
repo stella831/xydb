@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 // 任务核心类型定义
 interface TaskItem {
@@ -12,10 +12,10 @@ interface TaskItem {
   department: string;
   handler: string;
   finishStandard: string;
-  description: string; // 情况说明字段
+  description: string;
 }
 
-// 日期工具函数：计算任务默认状态（7天内为即将到期）
+// 日期工具函数：自动计算任务状态（7天内为即将到期）
 const getDefaultTaskStatus = (deadlineStr: string) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -28,7 +28,7 @@ const getDefaultTaskStatus = (deadlineStr: string) => {
   return '进行中';
 };
 
-// 登录组件
+// 登录弹窗组件
 const LoginModal = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +45,7 @@ const LoginModal = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-xl p-6 w-full max-w-sm">
         <h2 className="text-xl font-bold text-center mb-6">督办系统登录</h2>
         <div className="space-y-4 mb-6">
@@ -83,12 +83,20 @@ const LoginModal = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
 };
 
 // 任务卡片组件
-const TaskCard = ({ task, onUpdate, isLoggedIn }: { task: TaskItem, onUpdate: (updated: TaskItem) => void, isLoggedIn: boolean }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+const TaskCard = ({ 
+  task, 
+  onUpdate, 
+  isLoggedIn 
+}: { 
+  task: TaskItem, 
+  onUpdate: (updated: TaskItem) => void, 
+  isLoggedIn: boolean 
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<TaskItem>({ ...task });
 
-  // 样式映射
+  // 样式映射（对齐截图配色）
   const statusMap = {
     '进行中': 'bg-blue-50 text-blue-600',
     '即将到期': 'bg-orange-50 text-orange-600',
@@ -107,105 +115,138 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }: { task: TaskItem, onUpdate: (u
     onUpdate(editData);
     setIsEditing(false);
   };
-
   // 取消编辑
   const handleCancel = () => {
     setEditData({ ...task });
     setIsEditing(false);
   };
 
-  return (
-    <div className={`rounded-xl p-4 shadow-sm mb-3 ${task.taskLevel === '二级' ? 'bg-gray-50 ml-4' : task.taskLevel === '三级' ? 'bg-gray-50 ml-8' : 'bg-white'}`}>
-      {/* 卡片头部 */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <span 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="cursor-pointer text-gray-500 transition-transform"
-            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          >
-            ▲
-          </span>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${levelMap[task.taskLevel]}`}>
-            {task.taskLevel}
-          </span>
-          {!isEditing ? (
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-800">{task.taskName}</h3>
-              {task.subTaskName && <p className="text-sm text-gray-500">{task.subTaskName}</p>}
-            </div>
-          ) : (
-            <div className="flex-1 space-y-2">
-              <input
-                type="text"
-                value={editData.taskName}
-                onChange={(e) => setEditData({ ...editData, taskName: e.target.value })}
-                className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
-              />
-              <input
-                type="text"
-                value={editData.subTaskName}
-                onChange={(e) => setEditData({ ...editData, subTaskName: e.target.value })}
-                className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
-              />
-            </div>
-          )}
-        </div>
+  // 判断是否需要显示逾期警告
+  const showWarning = task.status === '已逾期' || task.status === '即将到期';
 
-        <div className="flex items-center justify-between ml-8">
-          {!isEditing ? (
-            <>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusMap[task.status]}`}>
-                {task.status}
-              </span>
-              <span className="text-sm font-medium text-gray-600">{task.deadline}</span>
-            </>
-          ) : (
-            <div className="w-full flex items-center justify-between">
-              <select
-                value={editData.status}
-                onChange={(e) => setEditData({ ...editData, status: e.target.value as any })}
-                className="px-2 py-1 border border-gray-200 rounded text-sm"
-              >
-                <option value="进行中">进行中</option>
-                <option value="已完成">已完成</option>
-                <option value="未完成">未完成</option>
-                <option value="已逾期">已逾期</option>
-                <option value="即将到期">即将到期</option>
-              </select>
-              <input
-                type="text"
-                value={editData.deadline}
-                onChange={(e) => setEditData({ ...editData, deadline: e.target.value })}
-                className="w-32 px-2 py-1 border border-gray-200 rounded text-sm text-center"
-              />
-            </div>
-          )}
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm mb-3">
+      {/* 卡片头部（折叠控制区） */}
+      <div className="flex items-center gap-3">
+        <span 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="cursor-pointer text-gray-400 transition-transform select-none"
+        >
+          {isExpanded ? '∨' : '>'}
+        </span>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${levelMap[task.taskLevel]}`}>
+          {task.taskLevel}
+        </span>
+        
+        {!isEditing ? (
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800">{task.taskName}</h3>
+            {task.subTaskName && <p className="text-sm text-gray-500">{task.subTaskName}</p>}
+          </div>
+        ) : (
+          <div className="flex-1 space-y-2">
+            <input
+              type="text"
+              value={editData.taskName}
+              onChange={(e) => setEditData({ ...editData, taskName: e.target.value })}
+              className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
+            />
+            <input
+              type="text"
+              value={editData.subTaskName}
+              onChange={(e) => setEditData({ ...editData, subTaskName: e.target.value })}
+              className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
+            />
+          </div>
+        )}
+
+        {/* 状态与截止日期 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusMap[task.status]}`}>
+            {task.status}
+          </span>
+          <span className="text-sm font-medium text-gray-600 whitespace-nowrap">{task.deadline}</span>
+          {showWarning && <span className="text-red-500">⚠️</span>}
         </div>
       </div>
 
-      {/* 卡片详情（折叠控制） */}
+      {/* 卡片详情（折叠展开区） */}
       {isExpanded && (
-        <div className="mt-4 pt-3 border-t border-gray-100 ml-8">
-          <div className="flex flex-wrap gap-3 mb-2 text-sm">
+        <div className="mt-4 pt-3 border-t border-gray-100 ml-6">
+          <div className="flex flex-wrap gap-3 mb-3 text-sm items-center">
             <span className="text-gray-600">{task.department}</span>
-            <span className="font-medium text-gray-700">{task.handler}</span>
+            <span className="font-medium text-gray-700">· {task.handler}</span>
+
             {isLoggedIn && !isEditing && (
-              <span 
+              <button
                 onClick={() => setIsEditing(true)}
-                className="ml-auto text-blue-600 font-medium cursor-pointer hover:underline"
+                className="ml-auto text-blue-600 font-medium cursor-pointer hover:underline bg-transparent border-none p-0"
               >
                 编辑
-              </span>
+              </button>
             )}
+
             {isEditing && (
               <div className="ml-auto flex gap-3">
-                <span onClick={handleCancel} className="text-gray-500 cursor-pointer hover:underline">取消</span>
-                <span onClick={handleSave} className="text-blue-600 font-medium cursor-pointer hover:underline">保存</span>
+                <button onClick={handleCancel} className="text-gray-500 cursor-pointer bg-transparent border-none p-0">取消</button>
+                <button onClick={handleSave} className="text-blue-600 font-medium cursor-pointer bg-transparent border-none p-0">保存</button>
               </div>
             )}
           </div>
 
+          {/* 编辑模式：部门+负责人 */}
+          {isEditing && (
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">部门</span>
+                <input
+                  value={editData.department}
+                  onChange={(e) => setEditData({ ...editData, department: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">负责人</span>
+                <input
+                  value={editData.handler}
+                  onChange={(e) => setEditData({ ...editData, handler: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 编辑模式：状态+截止日期 */}
+          {isEditing && (
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">任务状态</span>
+                <select
+                  value={editData.status}
+                  onChange={(e) => setEditData({ ...editData, status: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="进行中">进行中</option>
+                  <option value="已完成">已完成</option>
+                  <option value="未完成">未完成</option>
+                  <option value="已逾期">已逾期</option>
+                  <option value="即将到期">即将到期</option>
+                </select>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">截止日期</span>
+                <input
+                  type="text"
+                  value={editData.deadline}
+                  onChange={(e) => setEditData({ ...editData, deadline: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  placeholder="例：2026/12/31"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 办结标准与情况说明 */}
           {!isEditing ? (
             <>
               <div className="mb-3">
@@ -232,8 +273,8 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }: { task: TaskItem, onUpdate: (u
                 <textarea
                   value={editData.description}
                   onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[80px]"
                   placeholder="请补充情况说明"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[80px]"
                 />
               </div>
             </div>
@@ -256,12 +297,17 @@ export default function SupervisePage() {
   const [selectedLevel, setSelectedLevel] = useState('全部等级');
   const [selectedStatus, setSelectedStatus] = useState('全部状态');
 
-  // 下拉展开状态
-  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
-  const [levelDropdownOpen, setLevelDropdownOpen] = useState(false);
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  // 下拉框展开状态
+  const [deptOpen, setDeptOpen] = useState(false);
+  const [levelOpen, setLevelOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
 
-  // 全量任务初始数据（已统一修改为物服事业部）
+  // 下拉框Ref（用于点击外部关闭）
+  const deptRef = useRef<HTMLDivElement>(null);
+  const levelRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  // 全量任务初始数据
   const defaultTaskData: TaskItem[] = [
     { id:1, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体营业收入4678万元；6月30日前完成9356万元；9月30日前完成22455万元；12月31日前完成37425.4万元', description:'暂无说明' },
     { id:2, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:getDefaultTaskStatus('2026/12/31'), deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体利润总额209.25万元；6月30日前完成502.19万元；9月30日前完成1004.38万元；12月31日前完成1673.97万元', description:'暂无说明' },
@@ -299,15 +345,14 @@ export default function SupervisePage() {
     { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:getDefaultTaskStatus('2026/06/10'), deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
   ];
 
-  // 任务列表状态（从localStorage读取修改后的数据）
+  // 任务列表状态（从localStorage读取）
   const [taskList, setTaskList] = useState<TaskItem[]>([]);
 
-  // 页面加载：读取登录状态和任务数据
+  // 页面初始化：读取登录状态和任务数据
   useEffect(() => {
     const loggedIn = localStorage.getItem('isSuperviseLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
 
-    // 读取本地存储的任务数据，没有的话用默认数据
     const savedTasks = localStorage.getItem('superviseTaskList');
     if (savedTasks) {
       setTaskList(JSON.parse(savedTasks));
@@ -329,43 +374,39 @@ export default function SupervisePage() {
     return ['全部事业部', ...depts];
   }, [taskList]);
 
-  // 等级下拉选项
+  // 等级、状态下拉选项
   const levelList = ['全部等级', '一级', '二级', '三级'];
-
-  // 状态下拉选项
   const statusList = ['全部状态', '进行中', '已完成', '未完成', '已逾期', '即将到期'];
 
-  // 顶部统计数据计算
+  // 顶部统计数据（对齐截图全量统计）
   const stats = useMemo(() => {
+    const total = taskList.length;
+    let doing = 0;
+    let finished = 0;
     let overdue = 0;
     let expiring = 0;
     let unfinished = 0;
-    const total = taskList.length;
 
     taskList.forEach(task => {
+      if (task.status === '进行中') doing++;
+      if (task.status === '已完成') finished++;
       if (task.status === '已逾期') overdue++;
       if (task.status === '即将到期') expiring++;
       if (task.status !== '已完成') unfinished++;
     });
 
-    return { overdue, expiring, unfinished, total };
+    return { total, doing, finished, overdue, expiring, unfinished };
   }, [taskList]);
 
   // 多条件筛选逻辑
   const filteredTaskList = useMemo(() => {
     return taskList.filter(task => {
       // 事业部筛选
-      if (selectedDepartment !== '全部事业部' && task.department !== selectedDepartment) {
-        return false;
-      }
+      if (selectedDepartment !== '全部事业部' && task.department !== selectedDepartment) return false;
       // 等级筛选
-      if (selectedLevel !== '全部等级' && task.taskLevel !== selectedLevel) {
-        return false;
-      }
+      if (selectedLevel !== '全部等级' && task.taskLevel !== selectedLevel) return false;
       // 状态筛选
-      if (selectedStatus !== '全部状态' && task.status !== selectedStatus) {
-        return false;
-      }
+      if (selectedStatus !== '全部状态' && task.status !== selectedStatus) return false;
       // 关键词搜索
       if (searchKey) {
         const key = searchKey.toLowerCase();
@@ -385,205 +426,229 @@ export default function SupervisePage() {
     setTaskList(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
   };
 
-  // 点击空白关闭下拉
+  // 核心修复：点击外部关闭下拉框（无副作用方案）
   useEffect(() => {
-    const handleClickOutside = () => {
-      setDeptDropdownOpen(false);
-      setLevelDropdownOpen(false);
-      setStatusDropdownOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (deptRef.current && !deptRef.current.contains(e.target as Node)) {
+        setDeptOpen(false);
+      }
+      if (levelRef.current && !levelRef.current.contains(e.target as Node)) {
+        setLevelOpen(false);
+      }
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+        setStatusOpen(false);
+      }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 处理下拉框点击，阻止冒泡
-  const handleDropdownClick = (e: React.MouseEvent, type: 'dept' | 'level' | 'status') => {
-    e.stopPropagation();
-    if (type === 'dept') {
-      setDeptDropdownOpen(!deptDropdownOpen);
-      setLevelDropdownOpen(false);
-      setStatusDropdownOpen(false);
-    } else if (type === 'level') {
-      setLevelDropdownOpen(!levelDropdownOpen);
-      setDeptDropdownOpen(false);
-      setStatusDropdownOpen(false);
-    } else {
-      setStatusDropdownOpen(!statusDropdownOpen);
-      setDeptDropdownOpen(false);
-      setLevelDropdownOpen(false);
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto pb-10">
+    <main className="min-h-screen bg-gradient-to-b from-blue-700 to-blue-600">
       {/* 登录弹窗 */}
       {showLoginModal && <LoginModal onLogin={(success) => {
         setIsLoggedIn(success);
         setShowLoginModal(false);
       }} />}
 
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-800">商管督办通</h1>
-        {!isLoggedIn ? (
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="bg-blue-600 text-white px-4 py-1 rounded-lg text-sm hover:bg-blue-700"
-          >
-            登录编辑
-          </button>
-        ) : (
-          <button
-            onClick={() => {
-              if(confirm('确定要退出登录吗？')) {
-                localStorage.removeItem('isSuperviseLoggedIn');
-                window.location.reload();
-              }
-            }}
-            className="bg-gray-200 text-gray-700 px-4 py-1 rounded-lg text-sm hover:bg-gray-300"
-          >
-            退出登录
-          </button>
-        )}
-      </div>
-
-      {/* 督办事项标题 */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">督办事项细节</h2>
-        <p className="text-gray-500">共 {stats.total} 个督办事项</p>
-      </div>
-
-      {/* 筛选区域 */}
-      <div className="bg-white rounded-xl p-4 mb-4">
-        <div className="flex flex-wrap gap-3 mb-4">
-          {/* 事业部下拉 */}
-          <div className="relative">
+      {/* 页面头部 */}
+      <div className="p-4 pt-12 pb-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">商管督办通</h1>
+          {!isLoggedIn ? (
             <button
-              className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[140px]"
-              onClick={(e) => handleDropdownClick(e, 'dept')}
+              onClick={() => setShowLoginModal(true)}
+              className="bg-white text-blue-700 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
             >
-              {selectedDepartment}
-              <span className="text-gray-400">▼</span>
+              登录编辑
             </button>
-            {deptDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-10 max-h-48 overflow-y-auto min-w-[140px]">
-                {departmentList.map(dept => (
-                  <div
-                    key={dept}
-                    className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedDepartment === dept ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDepartment(dept);
-                      setDeptDropdownOpen(false);
-                    }}
-                  >
-                    {dept}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 等级下拉 */}
-          <div className="relative">
+          ) : (
             <button
-              className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[120px]"
-              onClick={(e) => handleDropdownClick(e, 'level')}
+              onClick={() => {
+                if(confirm('确定要退出登录吗？')) {
+                  localStorage.removeItem('isSuperviseLoggedIn');
+                  window.location.reload();
+                }
+              }}
+              className="bg-white/20 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-white/30"
             >
-              {selectedLevel}
-              <span className="text-gray-400">▼</span>
+              退出登录
             </button>
-            {levelDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-10 min-w-[120px]">
-                {levelList.map(level => (
-                  <div
-                    key={level}
-                    className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedLevel === level ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedLevel(level);
-                      setLevelDropdownOpen(false);
-                    }}
-                  >
-                    {level}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
+        </div>
+      </div>
 
-          {/* 状态下拉 */}
-          <div className="relative">
-            <button
-              className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 text-gray-700 min-w-[120px]"
-              onClick={(e) => handleDropdownClick(e, 'status')}
-            >
-              {selectedStatus}
-              <span className="text-gray-400">▼</span>
-            </button>
-            {statusDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-10 min-w-[120px]">
-                {statusList.map(status => (
-                  <div
-                    key={status}
-                    className={`py-2 px-4 hover:bg-gray-50 cursor-pointer ${selectedStatus === status ? 'bg-blue-50 text-blue-600 font-medium' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedStatus(status);
-                      setStatusDropdownOpen(false);
-                    }}
-                  >
-                    {status}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 搜索框 */}
-          <div className="relative flex-1 min-w-[200px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-            <input
-              type="text"
-              placeholder="搜索关键词..."
-              value={searchKey}
-              onChange={(e) => setSearchKey(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+      {/* 统计面板（对齐截图样式） */}
+      <div className="px-4 mb-6">
+        <div className="bg-white rounded-xl p-6 w-full">
+          <div className="grid grid-cols-2 gap-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">总数</span>
+              <span className="text-xl font-bold text-gray-800">{stats.total}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">进行中</span>
+              <span className="text-xl font-bold text-blue-600">{stats.doing}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">已完成</span>
+              <span className="text-xl font-bold text-green-600">{stats.finished}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">已逾期</span>
+              <span className="text-xl font-bold text-red-600">{stats.overdue}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">即将到期</span>
+              <span className="text-xl font-bold text-orange-600">{stats.expiring}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-base">未完成</span>
+              <span className="text-xl font-bold text-purple-600">{stats.unfinished}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 顶部统计栏 */}
-      <div className="bg-white rounded-xl p-4 mb-6 flex justify-around items-center">
-        <div className="text-center">
-          <p className="text-gray-500 text-sm mb-1">已逾期</p>
-          <p className="text-red-500 text-xl font-bold">{stats.overdue}</p>
+      {/* 主内容区 */}
+      <div className="bg-gray-50 rounded-t-3xl min-h-screen p-4">
+        {/* 督办事项标题 */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">督办事项细节</h2>
+          <p className="text-gray-500">共 {filteredTaskList.length} 个督办事项</p>
         </div>
-        <div className="text-center">
-          <p className="text-gray-500 text-sm mb-1">即将到期</p>
-          <p className="text-orange-500 text-xl font-bold">{stats.expiring}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-gray-500 text-sm mb-1">未完成</p>
-          <p className="text-blue-500 text-xl font-bold">{stats.unfinished}</p>
-        </div>
-      </div>
 
-      {/* 任务列表 */}
-      <div className="space-y-2">
-        {filteredTaskList.length > 0 ? (
-          filteredTaskList.map(task => (
-            <TaskCard 
-              key={task.id} 
-              task={task} 
-              onUpdate={handleUpdateTask} 
-              isLoggedIn={isLoggedIn} 
-            />
-          ))
-        ) : (
-          <div className="text-center py-12 text-gray-500 bg-white rounded-xl">暂无匹配的督办事项</div>
-        )}
+        {/* 筛选与搜索区 */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-3 mb-4">
+            {/* 事业部下拉框（核心修复） */}
+            <div className="relative" ref={deptRef}>
+              <button
+                className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[140px] shadow-sm"
+                onClick={() => {
+                  setDeptOpen(!deptOpen);
+                  setLevelOpen(false);
+                  setStatusOpen(false);
+                }}
+              >
+                {selectedDepartment}
+                <span className="text-gray-400 ml-auto">∨</span>
+              </button>
+              {deptOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-50 max-h-48 overflow-y-auto min-w-[140px]">
+                  {departmentList.map(dept => (
+                    <div
+                      key={dept}
+                      className={`py-3 px-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between
+                        ${selectedDepartment === dept ? 'bg-gray-100 text-gray-800 font-medium' : 'text-gray-700'}`}
+                      onClick={() => {
+                        setSelectedDepartment(dept);
+                        setDeptOpen(false);
+                      }}
+                    >
+                      {dept}
+                      {selectedDepartment === dept && <span className="text-gray-500">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 等级下拉框（核心修复） */}
+            <div className="relative" ref={levelRef}>
+              <button
+                className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[120px] shadow-sm"
+                onClick={() => {
+                  setLevelOpen(!levelOpen);
+                  setDeptOpen(false);
+                  setStatusOpen(false);
+                }}
+              >
+                {selectedLevel}
+                <span className="text-gray-400 ml-auto">∨</span>
+              </button>
+              {levelOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-50 min-w-[120px]">
+                  {levelList.map(level => (
+                    <div
+                      key={level}
+                      className={`py-3 px-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between
+                        ${selectedLevel === level ? 'bg-gray-100 text-gray-800 font-medium' : 'text-gray-700'}`}
+                      onClick={() => {
+                        setSelectedLevel(level);
+                        setLevelOpen(false);
+                      }}
+                    >
+                      {level}
+                      {selectedLevel === level && <span className="text-gray-500">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 状态下拉框（核心修复，对齐截图） */}
+            <div className="relative" ref={statusRef}>
+              <button
+                className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[120px] shadow-sm"
+                onClick={() => {
+                  setStatusOpen(!statusOpen);
+                  setDeptOpen(false);
+                  setLevelOpen(false);
+                }}
+              >
+                {selectedStatus}
+                <span className="text-gray-400 ml-auto">∨</span>
+              </button>
+              {statusOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 z-50 min-w-[120px]">
+                  {statusList.map(status => (
+                    <div
+                      key={status}
+                      className={`py-3 px-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between
+                        ${selectedStatus === status ? 'bg-gray-100 text-gray-800 font-medium' : 'text-gray-700'}`}
+                      onClick={() => {
+                        setSelectedStatus(status);
+                        setStatusOpen(false);
+                      }}
+                    >
+                      {status}
+                      {selectedStatus === status && <span className="text-gray-500">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 搜索框 */}
+            <div className="relative flex-1 min-w-[200px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <input
+                type="text"
+                placeholder="搜索关键词..."
+                value={searchKey}
+                onChange={(e) => setSearchKey(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 任务列表 */}
+        <div className="space-y-3 pb-10">
+          {filteredTaskList.length > 0 ? (
+            filteredTaskList.map(task => (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onUpdate={handleUpdateTask} 
+                isLoggedIn={isLoggedIn} 
+              />
+            ))
+          ) : (
+            <div className="text-center py-12 text-gray-500 bg-white rounded-xl">暂无匹配的督办事项</div>
+          )}
+        </div>
       </div>
     </main>
   );
