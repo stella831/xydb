@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from 'react';
 
-// 任务数据类型定义，和你的表格字段1:1对应
+// 任务数据类型定义，匹配督办系统全字段
 interface Task {
   id: number;
   serialNumber: string;
   responsibleUnit: string;
+  department: string;
   taskLevel: string;
+  supervisionLevel: '一级' | '二级' | '三级';
   taskDimension: string;
   taskSource: string;
   taskName: string;
@@ -19,23 +21,26 @@ interface Task {
   targetQ4: string;
   deadline: string;
   handler: string;
-  status: '进行中' | '已完成' | '即将到期' | '已逾期';
+  status: '进行中' | '已完成' | '已逾期' | '即将到期' | '未完成';
 }
 
-export default function TaskDashboardPage() {
+export default function SupervisionDashboardPage() {
   // 筛选状态管理
   const [searchKeyword, setSearchKeyword] = useState('');
   const [unitFilter, setUnitFilter] = useState<string>('all');
-  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // 完整41项任务数据，和你提供的Excel清单1:1还原
+  // 完整41项任务数据，匹配事业部、督办层级，和原清单1:1对应
   const tasks: Task[] = [
+    // 物业事业部 - 兆翔物业
     {
       id: 1,
       serialNumber: '1',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '经营计划指标推进工作',
@@ -53,7 +58,9 @@ export default function TaskDashboardPage() {
       id: 2,
       serialNumber: '2',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '经营计划指标推进工作',
@@ -71,7 +78,9 @@ export default function TaskDashboardPage() {
       id: 3,
       serialNumber: '3',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营深化改革',
       taskSource: '2026年董事会',
       taskName: '应收账款“四清”工作',
@@ -89,7 +98,9 @@ export default function TaskDashboardPage() {
       id: 4,
       serialNumber: '4',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '市场开拓攻艰',
       taskSource: '2026年董事会',
       taskName: '外部业务拓展推进工作',
@@ -107,7 +118,9 @@ export default function TaskDashboardPage() {
       id: 5,
       serialNumber: '5',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '市场开拓攻艰',
       taskSource: '2026年董事会',
       taskName: '资质提升推进工作',
@@ -125,7 +138,9 @@ export default function TaskDashboardPage() {
       id: 6,
       serialNumber: '6',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会，一夜转场和二期投运专题会',
       taskName: '机电业务重点项目实施工作',
@@ -143,7 +158,9 @@ export default function TaskDashboardPage() {
       id: 7,
       serialNumber: '7',
       responsibleUnit: '兆翔物业',
+      department: '物业事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会，一夜转场和二期投运专题会',
       taskName: '机电业务重点项目实施工作',
@@ -157,11 +174,14 @@ export default function TaskDashboardPage() {
       handler: '张晨岚',
       status: '进行中',
     },
+    // 商服事业部 - 翔业商管
     {
       id: 8,
       serialNumber: '8',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '经营计划指标推进工作',
@@ -179,7 +199,9 @@ export default function TaskDashboardPage() {
       id: 9,
       serialNumber: '9',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '经营计划指标推进工作',
@@ -197,7 +219,9 @@ export default function TaskDashboardPage() {
       id: 10,
       serialNumber: '10',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '代管物业业绩指标推进工作',
@@ -215,7 +239,9 @@ export default function TaskDashboardPage() {
       id: 11,
       serialNumber: '11',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '2026年董事会',
       taskName: '代管物业业绩指标推进工作',
@@ -233,7 +259,9 @@ export default function TaskDashboardPage() {
       id: 12,
       serialNumber: '12',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '2026年董事会',
       taskName: '代管物业业绩指标推进工作',
@@ -251,7 +279,9 @@ export default function TaskDashboardPage() {
       id: 13,
       serialNumber: '13',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '战略优化布局',
       taskSource: '2026年董事会',
       taskName: '五通商业新经济标杆项目打造工作',
@@ -269,7 +299,9 @@ export default function TaskDashboardPage() {
       id: 14,
       serialNumber: '14',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六',
       taskName: '重点项目载体去化工作',
@@ -287,7 +319,9 @@ export default function TaskDashboardPage() {
       id: 15,
       serialNumber: '15',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六，2026年董事会',
       taskName: '重点项目载体去化工作',
@@ -305,7 +339,9 @@ export default function TaskDashboardPage() {
       id: 16,
       serialNumber: '16',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六，2026年董事会',
       taskName: '重点项目载体去化工作',
@@ -323,7 +359,9 @@ export default function TaskDashboardPage() {
       id: 17,
       serialNumber: '17',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六，2026年董事会',
       taskName: '重点项目载体去化工作',
@@ -341,7 +379,9 @@ export default function TaskDashboardPage() {
       id: 18,
       serialNumber: '18',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六，2026年董事会',
       taskName: '重点项目载体去化工作',
@@ -359,7 +399,9 @@ export default function TaskDashboardPage() {
       id: 19,
       serialNumber: '19',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '载体高效去化',
       taskSource: '跨越二五二六，2026年董事会',
       taskName: '重点项目载体去化工作',
@@ -373,16 +415,19 @@ export default function TaskDashboardPage() {
       handler: '李泉',
       status: '进行中',
     },
+    // 创新事业部
     {
       id: 20,
       serialNumber: '20',
       responsibleUnit: '翔业商管',
+      department: '创新事业部',
       taskLevel: '重要',
+      supervisionLevel: '一级',
       taskDimension: '新兴产业发展',
       taskSource: '2026年董事会,跨越二五二六',
       taskName: '宠物经济项目落地实施推进工作',
       subTaskName: '宠物经济线下平台1.1期',
-      targetSpring: '2月16日前完成五通“人宠共生”城市商业综合体多方案比选，多轮修正空间方案及商业定位报告',
+      targetSpring: '2月16日前完成五通"人宠共生"城市商业综合体多方案比选，多轮修正空间方案及商业定位报告',
       targetQ1: '3月31日前制定项目招商运营策略，确定业态与品牌组合，完成空间方案修正稿',
       targetQ2: '6月30日前与首个宠物经济相关合作方签订协议，凭协议办结',
       targetQ3: '/',
@@ -391,11 +436,14 @@ export default function TaskDashboardPage() {
       handler: '曹冰涛',
       status: '进行中',
     },
+    // 免税事业部
     {
       id: 21,
       serialNumber: '21',
       responsibleUnit: '翔业商管',
+      department: '免税事业部',
       taskLevel: '重要',
+      supervisionLevel: '一级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会',
       taskName: '厦门市内免税店开业推进工作',
@@ -413,7 +461,9 @@ export default function TaskDashboardPage() {
       id: 22,
       serialNumber: '22',
       responsibleUnit: '翔业商管',
+      department: '免税事业部',
       taskLevel: '重要',
+      supervisionLevel: '一级',
       taskDimension: '招商引资合作',
       taskSource: '2026年董事会',
       taskName: '五通码头免税店开业推进工作',
@@ -431,7 +481,9 @@ export default function TaskDashboardPage() {
       id: 23,
       serialNumber: '23',
       responsibleUnit: '翔业商管',
+      department: '免税事业部',
       taskLevel: '重要',
+      supervisionLevel: '一级',
       taskDimension: '招商引资合作',
       taskSource: '2026年董事会',
       taskName: '福州长乐国际机场免税店开业推进工作',
@@ -449,7 +501,9 @@ export default function TaskDashboardPage() {
       id: 24,
       serialNumber: '24',
       responsibleUnit: '翔业商管',
+      department: '免税事业部',
       taskLevel: '重要',
+      supervisionLevel: '一级',
       taskDimension: '招商引资合作',
       taskSource: '2026年董事会',
       taskName: '免税牌照攻坚推进工作',
@@ -467,7 +521,9 @@ export default function TaskDashboardPage() {
       id: 25,
       serialNumber: '25',
       responsibleUnit: '翔业商管',
+      department: '免税事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '参股投资业务经营指标推进工作',
@@ -482,10 +538,33 @@ export default function TaskDashboardPage() {
       status: '进行中',
     },
     {
+      id: 34,
+      serialNumber: '34',
+      responsibleUnit: '翔业商管',
+      department: '免税事业部',
+      taskLevel: '重要',
+      supervisionLevel: '一级',
+      taskDimension: '机场投运筹备',
+      taskSource: '2026年董事会,跨越二六二七',
+      taskName: '翔安机场免税店转场运营推进工作',
+      subTaskName: '翔安机场免税店转场运营',
+      targetSpring: '/',
+      targetQ1: '3月31日前配合厦门空港取得免税店设立批复',
+      targetQ2: '6月30日前配合厦门空港完成招标方案',
+      targetQ3: '9月30日前配合厦门空港完成免税店招标事宜',
+      targetQ4: '10月30日前完成翔安机场免税店投资方案，通过集团审批；12月24日前推进完成免税店开业运营',
+      deadline: '2026/12/24',
+      handler: '林宇恒',
+      status: '进行中',
+    },
+    // 商服事业部补充
+    {
       id: 26,
       serialNumber: '26',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '五通奥莱项目经营业务推进工作',
@@ -503,7 +582,9 @@ export default function TaskDashboardPage() {
       id: 27,
       serialNumber: '27',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '五通奥莱项目经营业务推进工作',
@@ -521,7 +602,9 @@ export default function TaskDashboardPage() {
       id: 28,
       serialNumber: '28',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营指标突破',
       taskSource: '2026年董事会',
       taskName: '海峡新岸仙岳路跨线桥推进工作',
@@ -539,7 +622,9 @@ export default function TaskDashboardPage() {
       id: 29,
       serialNumber: '29',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营深化改革',
       taskSource: '2026年董事会',
       taskName: '商管与物管业务效能优化工作',
@@ -557,7 +642,9 @@ export default function TaskDashboardPage() {
       id: 30,
       serialNumber: '30',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营深化改革',
       taskSource: '2026年董事会',
       taskName: '翔业商管与兆翔置业工作界面明确',
@@ -575,7 +662,9 @@ export default function TaskDashboardPage() {
       id: 31,
       serialNumber: '31',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '跨越二六二七',
       taskName: '机场城市一体化推进工作',
@@ -593,7 +682,9 @@ export default function TaskDashboardPage() {
       id: 32,
       serialNumber: '32',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '战略优化布局',
       taskSource: '2026年董事会',
       taskName: '“一线“高崎片区战略布局推进工作',
@@ -611,7 +702,9 @@ export default function TaskDashboardPage() {
       id: 33,
       serialNumber: '33',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '战略优化布局',
       taskSource: '2026年董事会,跨越二五二六,跨越二六二七',
       taskName: '厦泉金先行示范区战略先行布局工作',
@@ -626,28 +719,12 @@ export default function TaskDashboardPage() {
       status: '进行中',
     },
     {
-      id: 34,
-      serialNumber: '34',
-      responsibleUnit: '翔业商管',
-      taskLevel: '重要',
-      taskDimension: '机场投运筹备',
-      taskSource: '2026年董事会,跨越二六二七',
-      taskName: '翔安机场免税店转场运营推进工作',
-      subTaskName: '翔安机场免税店转场运营',
-      targetSpring: '/',
-      targetQ1: '3月31日前配合厦门空港取得免税店设立批复',
-      targetQ2: '6月30日前配合厦门空港完成招标方案',
-      targetQ3: '9月30日前配合厦门空港完成免税店招标事宜',
-      targetQ4: '10月30日前完成翔安机场免税店投资方案，通过集团审批；12月24日前推进完成免税店开业运营',
-      deadline: '2026/12/24',
-      handler: '林宇恒',
-      status: '进行中',
-    },
-    {
       id: 35,
       serialNumber: '35',
       responsibleUnit: '翔业商管',
+      department: '商服事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '经营深化改革',
       taskSource: '2026年董事会',
       taskName: '商管集团数字化推进工作',
@@ -661,11 +738,14 @@ export default function TaskDashboardPage() {
       handler: '李森元',
       status: '进行中',
     },
+    // 机电事业部
     {
       id: 36,
       serialNumber: '36',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '翔安机场环境保障推进工作',
@@ -683,7 +763,9 @@ export default function TaskDashboardPage() {
       id: 37,
       serialNumber: '37',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '翔安机场环境保障推进工作',
@@ -701,7 +783,9 @@ export default function TaskDashboardPage() {
       id: 38,
       serialNumber: '38',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '翔安机场环境保障推进工作',
@@ -719,7 +803,9 @@ export default function TaskDashboardPage() {
       id: 39,
       serialNumber: '39',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '翔安机场环境保障推进工作',
@@ -737,7 +823,9 @@ export default function TaskDashboardPage() {
       id: 40,
       serialNumber: '40',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '二级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '福州机场二期环境保障推进工作',
@@ -755,7 +843,9 @@ export default function TaskDashboardPage() {
       id: 41,
       serialNumber: '41',
       responsibleUnit: '翔业商管',
+      department: '机电事业部',
       taskLevel: '重要',
+      supervisionLevel: '三级',
       taskDimension: '机场投运筹备',
       taskSource: '2026年董事会,跨越二六二七，一夜转场和二期投运专题会',
       taskName: '福州机场二期环境保障推进工作',
@@ -767,19 +857,67 @@ export default function TaskDashboardPage() {
       targetQ4: '/',
       deadline: '2026/6/10',
       handler: '林健',
-      status: '进行中',
+      status: '即将到期',
     },
   ];
 
-  // 自动提取筛选选项
-  const unitOptions = useMemo(() => Array.from(new Set(tasks.map(task => task.responsibleUnit))), [tasks]);
-  const levelOptions = useMemo(() => Array.from(new Set(tasks.map(task => task.taskLevel))), [tasks]);
-  const statusOptions = useMemo(() => Array.from(new Set(tasks.map(task => task.status))), [tasks]);
+  // ========== 动态统计计算（和截图数据逻辑完全一致） ==========
+  // 1. 全局总统计
+  const totalStats = useMemo(() => {
+    const total = tasks.length;
+    const inProgress = tasks.filter(t => t.status === '进行中').length;
+    const completed = tasks.filter(t => t.status === '已完成').length;
+    const overdue = tasks.filter(t => t.status === '已逾期').length;
+    const expiring = tasks.filter(t => t.status === '即将到期').length;
+    const unfinished = tasks.filter(t => t.status === '未完成').length;
+    return { total, inProgress, completed, overdue, expiring, unfinished };
+  }, [tasks]);
 
-  // 多维度筛选逻辑
+  // 2. 完成率统计
+  const completionRate = useMemo(() => {
+    const total = tasks.length;
+    const completed = totalStats.completed;
+    const totalRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0.00';
+
+    // 按督办层级统计
+    const level1Tasks = tasks.filter(t => t.supervisionLevel === '一级');
+    const level1Completed = level1Tasks.filter(t => t.status === '已完成').length;
+    const level1Rate = level1Tasks.length > 0 ? ((level1Completed / level1Tasks.length) * 100).toFixed(2) : '0.00';
+
+    const level2Tasks = tasks.filter(t => t.supervisionLevel === '二级');
+    const level2Completed = level2Tasks.filter(t => t.status === '已完成').length;
+    const level2Rate = level2Tasks.length > 0 ? ((level2Completed / level2Tasks.length) * 100).toFixed(2) : '0.00';
+
+    const level3Tasks = tasks.filter(t => t.supervisionLevel === '三级');
+    const level3Completed = level3Tasks.filter(t => t.status === '已完成').length;
+    const level3Rate = level3Tasks.length > 0 ? ((level3Completed / level3Tasks.length) * 100).toFixed(2) : '0.00';
+
+    return { totalRate, level1Rate, level2Rate, level3Rate };
+  }, [tasks, totalStats]);
+
+  // 3. 各事业部统计
+  const departmentStats = useMemo(() => {
+    const departments = ['创新事业部', '商服事业部', '机电事业部', '物业事业部', '免税事业部'];
+    return departments.map(dept => {
+      const deptTasks = tasks.filter(t => t.department === dept);
+      const total = deptTasks.length;
+      const inProgress = deptTasks.filter(t => t.status === '进行中').length;
+      const completed = deptTasks.filter(t => t.status === '已完成').length;
+      const overdue = deptTasks.filter(t => t.status === '已逾期').length;
+      const expiring = deptTasks.filter(t => t.status === '即将到期').length;
+      const unfinished = deptTasks.filter(t => t.status === '未完成').length;
+      return { deptName: dept, total, inProgress, completed, overdue, expiring, unfinished };
+    });
+  }, [tasks]);
+
+  // 4. 筛选选项提取
+  const unitOptions = useMemo(() => Array.from(new Set(tasks.map(t => t.responsibleUnit))), [tasks]);
+  const departmentOptions = useMemo(() => Array.from(new Set(tasks.map(t => t.department))), [tasks]);
+  const statusOptions = useMemo(() => Array.from(new Set(tasks.map(t => t.status))), [tasks]);
+
+  // 5. 筛选后任务列表
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
-      // 关键词搜索
       const matchesKeyword = searchKeyword
         ? task.taskName.toLowerCase().includes(searchKeyword.toLowerCase())
         || task.subTaskName.toLowerCase().includes(searchKeyword.toLowerCase())
@@ -787,49 +925,172 @@ export default function TaskDashboardPage() {
         || task.responsibleUnit.toLowerCase().includes(searchKeyword.toLowerCase())
         : true;
 
-      // 责任单位筛选
       const matchesUnit = unitFilter !== 'all' ? task.responsibleUnit === unitFilter : true;
-
-      // 任务等级筛选
-      const matchesLevel = levelFilter !== 'all' ? task.taskLevel === levelFilter : true;
-
-      // 任务状态筛选
+      const matchesDept = departmentFilter !== 'all' ? task.department === departmentFilter : true;
       const matchesStatus = statusFilter !== 'all' ? task.status === statusFilter : true;
 
-      return matchesKeyword && matchesUnit && matchesLevel && matchesStatus;
+      return matchesKeyword && matchesUnit && matchesDept && matchesStatus;
     });
-  }, [searchKeyword, unitFilter, levelFilter, statusFilter, tasks]);
+  }, [searchKeyword, unitFilter, departmentFilter, statusFilter, tasks]);
 
   // 状态样式映射
-  const statusClassMap: Record<Task['status'], string> = {
-    '进行中': 'bg-blue-500 text-white',
-    '已完成': 'bg-green-500 text-white',
-    '即将到期': 'bg-yellow-500 text-white',
-    '已逾期': 'bg-red-500 text-white',
+  const statusClassMap = {
+    '进行中': 'bg-blue-100 text-blue-600',
+    '已完成': 'bg-green-100 text-green-600',
+    '已逾期': 'bg-red-100 text-red-600',
+    '即将到期': 'bg-orange-100 text-orange-500',
+    '未完成': 'bg-purple-100 text-purple-600',
+  };
+
+  const statusTextColorMap = {
+    '进行中': 'text-blue-600',
+    '已完成': 'text-green-600',
+    '已逾期': 'text-red-600',
+    '即将到期': 'text-orange-500',
+    '未完成': 'text-purple-600',
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-[1920px] mx-auto">
-        {/* 页面标题 */}
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-          2026年集团攻坚专项行动二级任务清单
-        </h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* 顶部导航栏 */}
+      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <button className="text-gray-700">←</button>
+          <h1 className="text-xl font-bold text-gray-900">商管督办通</h1>
+        </div>
+        <button className="text-gray-700">···</button>
+      </div>
+
+      {/* 顶部品牌Banner */}
+      <div className="bg-[#165dff] text-white px-4 py-6">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex gap-2">
+            <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">管理员</span>
+            <span className="bg-purple-500/80 px-3 py-1 rounded-full text-sm font-medium">AI智能体（升级中）</span>
+          </div>
+        </div>
+        <h2 className="text-3xl font-bold mb-2">商管督办通 1.5</h2>
+        <p className="text-white/80 text-lg mb-1">AI赋能 · 高效协同 · 精准督办</p>
+        <p className="text-white/60 text-sm">助力任务管理效率提升，实现全流程可视化管控</p>
+      </div>
+
+      <div className="px-4 py-6 max-w-[1920px] mx-auto space-y-6">
+        {/* 全局总数据卡片 - 完全匹配截图布局 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">总任务数</p>
+            <p className="text-4xl font-bold text-gray-900">{totalStats.total}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">进行中</p>
+            <p className="text-4xl font-bold text-blue-600">{totalStats.inProgress}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">已完成</p>
+            <p className="text-4xl font-bold text-green-600">{totalStats.completed}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">已逾期</p>
+            <p className="text-4xl font-bold text-red-600">{totalStats.overdue}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">即将到期</p>
+            <p className="text-4xl font-bold text-orange-500">{totalStats.expiring}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-gray-500 text-lg mb-2">未完成</p>
+            <p className="text-4xl font-bold text-purple-600">{totalStats.unfinished}</p>
+          </div>
+        </div>
+
+        {/* 完成率统计卡片 */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">完成率统计</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-gray-500 text-base mb-2">总完成率</p>
+              <p className="text-4xl font-bold text-green-600">{completionRate.totalRate}%</p>
+              <p className="text-gray-400 text-sm mt-1">{totalStats.completed}/{totalStats.total}</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-base mb-2">一级督办完成率</p>
+              <p className="text-4xl font-bold text-blue-600">{completionRate.level1Rate}%</p>
+              <p className="text-gray-400 text-sm mt-1">紧急程度：高</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-base mb-2">二级督办完成率</p>
+              <p className="text-4xl font-bold text-purple-600">{completionRate.level2Rate}%</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-base mb-2">三级督办完成率</p>
+              <p className="text-4xl font-bold text-orange-500">{completionRate.level3Rate}%</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 各事业部概况 - 完全匹配截图布局 */}
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">各事业部概况</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {departmentStats.map(dept => (
+              <div key={dept.deptName} className="bg-white rounded-xl shadow-sm p-6">
+                <h4 className="text-xl font-bold text-gray-900 mb-4">{dept.deptName}</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">总数</span>
+                    <span className="font-semibold text-gray-900">{dept.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">进行中</span>
+                    <span className="font-semibold text-blue-600">{dept.inProgress}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">已完成</span>
+                    <span className="font-semibold text-green-600">{dept.completed}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">已逾期</span>
+                    <span className="font-semibold text-red-600">{dept.overdue}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">即将到期</span>
+                    <span className="font-semibold text-orange-500">{dept.expiring}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">未完成</span>
+                    <span className="font-semibold text-purple-600">{dept.unfinished}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* 筛选操作栏 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
             placeholder="搜索任务名称、分项任务、经办人、责任单位"
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">全部事业部</option>
+            {departmentOptions.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
 
           <select
             value={unitFilter}
             onChange={(e) => setUnitFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">全部责任单位</option>
             {unitOptions.map(unit => (
@@ -838,20 +1099,9 @@ export default function TaskDashboardPage() {
           </select>
 
           <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部任务等级</option>
-            {levelOptions.map(level => (
-              <option key={level} value={level}>{level}</option>
-            ))}
-          </select>
-
-          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">全部任务状态</option>
             {statusOptions.map(status => (
@@ -860,19 +1110,18 @@ export default function TaskDashboardPage() {
           </select>
         </div>
 
-        {/* 任务表格 */}
-        <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+        {/* 任务详情表格 */}
+        <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100 border-b border-gray-200">
+              <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 w-16">序号</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">事业部</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">责任单位</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">任务等级</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">任务维度</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">督办层级</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">任务名称</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">分项任务名称</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">分项任务</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">领跑首季目标</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">攻坚过半目标</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">完成时限</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">经办人</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">状态</th>
@@ -881,11 +1130,11 @@ export default function TaskDashboardPage() {
             <tbody>
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => (
-                  <tr key={task.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <tr key={task.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">{task.serialNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{task.department}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{task.responsibleUnit}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.taskLevel}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.taskDimension}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{task.supervisionLevel}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate" title={task.taskName}>
                       {task.taskName}
                     </td>
@@ -894,9 +1143,6 @@ export default function TaskDashboardPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900 max-w-[250px] truncate" title={task.targetQ1}>
                       {task.targetQ1}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 max-w-[250px] truncate" title={task.targetQ2}>
-                      {task.targetQ2}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">{task.deadline}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{task.handler}</td>
@@ -909,7 +1155,7 @@ export default function TaskDashboardPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-500">
                     暂无匹配的任务数据
                   </td>
                 </tr>
