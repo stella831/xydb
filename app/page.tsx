@@ -1,71 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
-// 任务核心类型定义（新增状态锁定字段，避免手动修改被自动覆盖）
-interface TaskItem {
-  id: number;
-  taskLevel: '一级' | '二级' | '三级';
-  taskName: string;
-  subTaskName: string;
-  status: '进行中' | '已完成' | '未完成' | '已逾期' | '即将到期';
-  isStatusLocked?: boolean; // 手动修改状态后锁定，不再自动更新
-  deadline: string;
-  department: string;
-  handler: string;
-  finishStandard: string;
-  description: string;
-}
-
-// ==================== 核心工具函数（和后端GitHub Actions逻辑100%对齐）====================
-/**
- * 获取校准后的北京时间（解决时区偏差，前后端日期统一）
- */
-const getBeijingDate = () => {
-  const now = new Date();
-  // 转换为UTC时间，再叠加8小时，确保无论用户在哪个时区都取到正确的北京时间
-  const utcTimestamp = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-  const beijingTimestamp = utcTimestamp + 8 * 60 * 60 * 1000;
-  return new Date(beijingTimestamp);
-};
-
-/**
- * 自动计算任务状态（严格遵循新规则）
- * @param deadlineStr 任务截止日期 支持YYYY/MM/DD、YYYY-MM-DD格式
- * @param finishStandard 办结标准
- * @returns 任务状态
- */
-const getDefaultTaskStatus = (deadlineStr: string, finishStandard: string) => {
-  // 取北京时间当天0点，排除时间干扰，仅按自然日计算
-  const today = getBeijingDate();
-  today.setHours(0, 0, 0, 0);
-
-  // 兼容日期格式，解决不同浏览器解析差异
-  const formatDeadline = deadlineStr.replace(/\//g, '-');
-  const deadline = new Date(formatDeadline);
-  deadline.setHours(0, 0, 0, 0);
-
-  // 计算剩余自然天数（整数，无小数偏差）
-  const diffTime = deadline.getTime() - today.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  // 核心规则1：距离截止日期 0天 ≤ 剩余天数 ≤7天 → 即将到期（含到期当天）
-  if (diffDays >= 0 && diffDays <= 7) {
-    return '即将到期';
-  }
-
-  // 核心规则2：已超期（剩余天数<0）
-  if (diffDays < 0) {
-    // 办结标准含数字指标 → 未完成；无数字指标 → 已逾期
-    const hasNumberTarget = /\d+(\.\d+)?/.test(finishStandard);
-    return hasNumberTarget ? '未完成' : '已逾期';
-  }
-
-  // 其他情况：剩余天数>7天 → 进行中
-  return '进行中';
-};
-
-// ==================== 登录弹窗组件（无修改，保留原有逻辑）====================
-const LoginModal = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
+// 登录弹窗组件
+const LoginModal = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -118,21 +55,13 @@ const LoginModal = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
   );
 };
 
-// ==================== 任务卡片组件（核心优化：自动计算状态+锁定逻辑）====================
-const TaskCard = ({ 
-  task, 
-  onUpdate, 
-  isLoggedIn 
-}: { 
-  task: TaskItem, 
-  onUpdate: (updated: TaskItem) => void, 
-  isLoggedIn: boolean 
-}) => {
+// 任务卡片组件
+const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<TaskItem>({ ...task });
+  const [editData, setEditData] = useState({ ...task });
 
-  // 样式映射（无修改）
+  // 样式映射
   const statusMap = {
     '进行中': 'bg-blue-50 text-blue-600',
     '即将到期': 'bg-orange-50 text-orange-600',
@@ -146,13 +75,13 @@ const TaskCard = ({
     '三级': 'bg-orange-50 text-orange-600',
   };
 
-  // 新增：修改截止日期/办结标准时，自动重新计算状态并解锁
+  // 修改截止日期/办结标准时，自动重新计算状态
   useEffect(() => {
     const newStatus = getDefaultTaskStatus(editData.deadline, editData.finishStandard);
     setEditData(prev => ({
       ...prev,
       status: newStatus,
-      isStatusLocked: false // 修改核心信息后，解锁状态，恢复自动更新
+      isStatusLocked: false
     }));
   }, [editData.deadline, editData.finishStandard]);
 
@@ -172,7 +101,6 @@ const TaskCard = ({
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm mb-3">
-      {/* 卡片头部（折叠控制区） */}
       <div className="flex items-center gap-3">
         <span 
           onClick={() => setIsExpanded(!isExpanded)}
@@ -206,7 +134,6 @@ const TaskCard = ({
           </div>
         )}
 
-        {/* 状态与截止日期 */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusMap[task.status]}`}>
             {task.status}
@@ -216,7 +143,6 @@ const TaskCard = ({
         </div>
       </div>
 
-      {/* 卡片详情（折叠展开区） */}
       {isExpanded && (
         <div className="mt-4 pt-3 border-t border-gray-100 ml-6">
           <div className="flex flex-wrap gap-3 mb-3 text-sm items-center">
@@ -240,7 +166,6 @@ const TaskCard = ({
             )}
           </div>
 
-          {/* 编辑模式：部门+负责人 */}
           {isEditing && (
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
@@ -262,7 +187,6 @@ const TaskCard = ({
             </div>
           )}
 
-          {/* 编辑模式：状态+截止日期（优化：手动改状态自动锁定） */}
           {isEditing && (
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
@@ -270,11 +194,11 @@ const TaskCard = ({
                 <select
                   value={editData.status}
                   onChange={(e) => {
-                    const newStatus = e.target.value as TaskItem['status'];
+                    const newStatus = e.target.value;
                     setEditData(prev => ({
                       ...prev,
                       status: newStatus,
-                      isStatusLocked: true // 手动修改状态后，锁定状态，不再自动更新
+                      isStatusLocked: true
                     }));
                   }}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
@@ -302,7 +226,6 @@ const TaskCard = ({
             </div>
           )}
 
-          {/* 办结标准与情况说明 */}
           {!isEditing ? (
             <>
               <div className="mb-3">
@@ -341,30 +264,56 @@ const TaskCard = ({
   );
 };
 
-// ==================== 主页面（核心修复：自动更新状态+定时刷新）====================
-export default function SupervisePage() {
-  // 登录状态
+// 核心工具函数
+const getBeijingDate = () => {
+  const now = new Date();
+  const utcTimestamp = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const beijingTimestamp = utcTimestamp + 8 * 60 * 60 * 1000;
+  return new Date(beijingTimestamp);
+};
+
+const getDefaultTaskStatus = (deadlineStr, finishStandard) => {
+  const today = getBeijingDate();
+  today.setHours(0, 0, 0, 0);
+
+  const formatDeadline = deadlineStr.replace(/\//g, '-');
+  const deadline = new Date(formatDeadline);
+  deadline.setHours(0, 0, 0, 0);
+
+  const diffTime = deadline.getTime() - today.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  // 0-7天为即将到期（严格遵循你的需求）
+  if (diffDays >= 0 && diffDays <= 7) {
+    return '即将到期';
+  }
+  if (diffDays < 0) {
+    const hasNumberTarget = /\d+(\.\d+)?/.test(finishStandard);
+    return hasNumberTarget ? '未完成' : '已逾期';
+  }
+  return '进行中';
+};
+
+// 首页主组件
+export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // 搜索与筛选状态
   const [searchKey, setSearchKey] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('全部事业部');
   const [selectedLevel, setSelectedLevel] = useState('全部等级');
   const [selectedStatus, setSelectedStatus] = useState('全部状态');
 
-  // 下拉框展开状态
   const [deptOpen, setDeptOpen] = useState(false);
   const [levelOpen, setLevelOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
 
-  // 下拉框Ref（用于点击外部关闭）
-  const deptRef = useRef<HTMLDivElement>(null);
-  const levelRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
+  const deptRef = useRef(null);
+  const levelRef = useRef(null);
+  const statusRef = useRef(null);
 
-  // 全量任务初始数据（新增默认锁定状态，优化初始化逻辑）
-  const defaultTaskData: TaskItem[] = [
+  // 全量任务初始数据
+  const defaultTaskData = [
     { id:1, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体营业收入4678万元；6月30日前完成9356万元；9月30日前完成22455万元；12月31日前完成37425.4万元', description:'暂无说明' },
     { id:2, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体利润总额209.25万元；6月30日前完成502.19万元；9月30日前完成1004.38万元；12月31日前完成1673.97万元', description:'暂无说明' },
     { id:3, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管物业营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'胡妍', finishStandard:'2026年完成代管物业收入29262.48万元（含奥莱492.77万元），其中：代管翔置业存量资产23596.43万元，翔业福州1327.5万元；福州空港楼外资产293.97万元；航空工业4044.58万元', description:'暂无说明' },
@@ -401,49 +350,41 @@ export default function SupervisePage() {
     { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:'即将到期', isStatusLocked: false, deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
   ];
 
-  // 任务列表状态
-  const [taskList, setTaskList] = useState<TaskItem[]>([]);
+  const [taskList, setTaskList] = useState([]);
 
-  // 核心修复：页面初始化时，自动更新所有未锁定任务的状态
+  // 页面初始化时自动更新任务状态
   useEffect(() => {
     const loggedIn = localStorage.getItem('isSuperviseLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
 
-    // 读取本地存储的任务数据
     const savedTasks = localStorage.getItem('superviseTaskList');
-    let initialTasks: TaskItem[] = savedTasks ? JSON.parse(savedTasks) : defaultTaskData;
+    let initialTasks = savedTasks ? JSON.parse(savedTasks) : defaultTaskData;
 
-    // 核心逻辑：每次打开页面，自动重新计算所有未锁定任务的状态
     const tasksWithUpdatedStatus = initialTasks.map(task => {
-      // 手动锁定的任务，不自动更新状态
       if (task.isStatusLocked) return task;
-      // 未锁定的任务，按最新日期重新计算状态
       const newStatus = getDefaultTaskStatus(task.deadline, task.finishStandard);
       return { ...task, status: newStatus, isStatusLocked: false };
     });
 
-    // 更新状态并同步到本地存储
     setTaskList(tasksWithUpdatedStatus);
     localStorage.setItem('superviseTaskList', JSON.stringify(tasksWithUpdatedStatus));
   }, []);
 
-  // 任务数据变化时，自动同步到本地存储
+  // 任务数据变化时同步到本地存储
   useEffect(() => {
     if (taskList.length > 0) {
       localStorage.setItem('superviseTaskList', JSON.stringify(taskList));
     }
   }, [taskList]);
 
-  // 新增：每天0点自动刷新任务状态（页面常驻时无需刷新）
+  // 每天0点自动刷新任务状态
   useEffect(() => {
     const now = getBeijingDate();
-    // 计算距离下一个北京时间0点的毫秒数
     const nextMidnight = new Date(now);
     nextMidnight.setDate(nextMidnight.getDate() + 1);
     nextMidnight.setHours(0, 0, 0, 0);
     const timeToMidnight = nextMidnight.getTime() - now.getTime();
 
-    // 0点触发状态更新
     const midnightTimer = setTimeout(() => {
       setTaskList(prev => {
         const updatedTasks = prev.map(task => {
@@ -459,13 +400,12 @@ export default function SupervisePage() {
     return () => clearTimeout(midnightTimer);
   }, [taskList]);
 
-  // 自动提取去重的事业部列表
+  // 自动提取事业部列表
   const departmentList = useMemo(() => {
     const depts = Array.from(new Set(taskList.map(item => item.department)));
     return ['全部事业部', ...depts];
   }, [taskList]);
 
-  // 等级、状态下拉选项
   const levelList = ['全部等级', '一级', '二级', '三级'];
   const statusList = ['全部状态', '进行中', '已完成', '未完成', '已逾期', '即将到期'];
 
@@ -489,16 +429,12 @@ export default function SupervisePage() {
     return { total, doing, finished, overdue, expiring, unfinished };
   }, [taskList]);
 
-  // 多条件筛选逻辑
+  // 多条件筛选
   const filteredTaskList = useMemo(() => {
     return taskList.filter(task => {
-      // 事业部筛选
       if (selectedDepartment !== '全部事业部' && task.department !== selectedDepartment) return false;
-      // 等级筛选
       if (selectedLevel !== '全部等级' && task.taskLevel !== selectedLevel) return false;
-      // 状态筛选
       if (selectedStatus !== '全部状态' && task.status !== selectedStatus) return false;
-      // 关键词搜索
       if (searchKey) {
         const key = searchKey.toLowerCase();
         const match = task.taskName.toLowerCase().includes(key)
@@ -513,20 +449,20 @@ export default function SupervisePage() {
   }, [taskList, selectedDepartment, selectedLevel, selectedStatus, searchKey]);
 
   // 更新任务数据
-  const handleUpdateTask = (updatedTask: TaskItem) => {
+  const handleUpdateTask = (updatedTask) => {
     setTaskList(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
   };
 
   // 点击外部关闭下拉框
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (deptRef.current && !deptRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e) => {
+      if (deptRef.current && !deptRef.current.contains(e.target)) {
         setDeptOpen(false);
       }
-      if (levelRef.current && !levelRef.current.contains(e.target as Node)) {
+      if (levelRef.current && !levelRef.current.contains(e.target)) {
         setLevelOpen(false);
       }
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+      if (statusRef.current && !statusRef.current.contains(e.target)) {
         setStatusOpen(false);
       }
     };
@@ -536,13 +472,11 @@ export default function SupervisePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-700 to-blue-600">
-      {/* 登录弹窗 */}
       {showLoginModal && <LoginModal onLogin={(success) => {
         setIsLoggedIn(success);
         setShowLoginModal(false);
       }} />}
 
-      {/* 页面头部 */}
       <div className="p-4 pt-12 pb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">商管督办通</h1>
@@ -569,7 +503,6 @@ export default function SupervisePage() {
         </div>
       </div>
 
-      {/* 统计面板 */}
       <div className="px-4 mb-6">
         <div className="bg-white rounded-xl p-6 w-full">
           <div className="grid grid-cols-2 gap-y-4">
@@ -601,18 +534,14 @@ export default function SupervisePage() {
         </div>
       </div>
 
-      {/* 主内容区 */}
       <div className="bg-gray-50 rounded-t-3xl min-h-screen p-4">
-        {/* 督办事项标题 */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-1">督办事项细节</h2>
           <p className="text-gray-500">共 {filteredTaskList.length} 个督办事项</p>
         </div>
 
-        {/* 筛选与搜索区 */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-3 mb-4">
-            {/* 事业部下拉框 */}
             <div className="relative" ref={deptRef}>
               <button
                 className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[140px] shadow-sm"
@@ -645,7 +574,6 @@ export default function SupervisePage() {
               )}
             </div>
 
-            {/* 等级下拉框 */}
             <div className="relative" ref={levelRef}>
               <button
                 className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[120px] shadow-sm"
@@ -678,7 +606,6 @@ export default function SupervisePage() {
               )}
             </div>
 
-            {/* 状态下拉框 */}
             <div className="relative" ref={statusRef}>
               <button
                 className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 text-gray-800 min-w-[120px] shadow-sm"
@@ -711,7 +638,6 @@ export default function SupervisePage() {
               )}
             </div>
 
-            {/* 搜索框 */}
             <div className="relative flex-1 min-w-[200px]">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
               <input
@@ -725,7 +651,6 @@ export default function SupervisePage() {
           </div>
         </div>
 
-        {/* 任务列表 */}
         <div className="space-y-3 pb-10">
           {filteredTaskList.length > 0 ? (
             filteredTaskList.map(task => (
