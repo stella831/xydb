@@ -29,7 +29,7 @@ export default function SupervisionSystemPage() {
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // ========== 动态统计计算（顶部表头数据） ==========
+  // ========== 动态统计计算 ==========
   // 1. 全局总统计
   const totalStats = useMemo(() => {
     const total = tasks.length;
@@ -47,7 +47,6 @@ export default function SupervisionSystemPage() {
     const completed = totalStats.completed;
     const totalRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0.00';
 
-    // 按督办层级统计
     const level1Tasks = tasks.filter(t => t.supervisionLevel === '一级');
     const level1Completed = level1Tasks.filter(t => t.status === '已完成').length;
     const level1Rate = level1Tasks.length > 0 ? ((level1Completed / level1Tasks.length) * 100).toFixed(2) : '0.00';
@@ -68,10 +67,9 @@ export default function SupervisionSystemPage() {
   const departmentOptions = useMemo(() => Array.from(new Set(tasks.map(t => t.department))), [tasks]);
   const statusOptions = useMemo(() => Array.from(new Set(tasks.map(t => t.status))), [tasks]);
 
-  // 4. 筛选后任务列表（和筛选功能联动）
+  // 4. 筛选后任务列表
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
-      // 关键词搜索（任务名、分项任务、经办人、责任单位）
       const matchesKeyword = searchKeyword
         ? task.taskName.toLowerCase().includes(searchKeyword.toLowerCase())
         || task.subTaskName.toLowerCase().includes(searchKeyword.toLowerCase())
@@ -79,30 +77,34 @@ export default function SupervisionSystemPage() {
         || task.responsibleUnit.toLowerCase().includes(searchKeyword.toLowerCase())
         : true;
 
-      // 责任单位筛选
       const matchesUnit = unitFilter !== 'all' ? task.responsibleUnit === unitFilter : true;
-
-      // 事业部筛选
       const matchesDept = departmentFilter !== 'all' ? task.department === departmentFilter : true;
-
-      // 任务状态筛选
       const matchesStatus = statusFilter !== 'all' ? task.status === statusFilter : true;
 
       return matchesKeyword && matchesUnit && matchesDept && matchesStatus;
     });
   }, [searchKeyword, unitFilter, departmentFilter, statusFilter, tasks]);
 
-  // 筛选后自动选中第一个任务，避免详情空白
+  // 筛选后自动选中第一个任务
   useEffect(() => {
     if (filteredTasks.length > 0 && !filteredTasks.find(t => t.id === selectedTask.id)) {
       setSelectedTask(filteredTasks[0]);
     }
   }, [filteredTasks, selectedTask.id]);
 
+  // 状态样式映射
+  const statusTextColorMap = {
+    '进行中': 'text-blue-600',
+    '已完成': 'text-green-600',
+    '已逾期': 'text-red-600',
+    '即将到期': 'text-orange-500',
+    '未完成': 'text-purple-600',
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 顶部导航栏 */}
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center sticky top-0 z-20">
+    <div className="min-h-screen bg-gray-50 pb-10">
+      {/* 顶部导航栏 - 仅导航固定，筛选区域不固定 */}
+      <div className="bg-white shadow-sm px-4 py-3 flex items-center sticky top-0 z-10">
         <button className="text-gray-700 mr-3">←</button>
         <h1 className="text-xl font-bold text-gray-900">督办系统</h1>
       </div>
@@ -110,77 +112,27 @@ export default function SupervisionSystemPage() {
       {/* 页面标题 */}
       <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center">
         <button className="text-gray-700 mr-2">←</button>
-        <h2 className="text-2xl font-bold text-gray-900">商管督办通</h2>
+        <h2 className="text-2xl font-bold text-gray-900">督办系统</h2>
       </div>
 
-      <div className="max-w-[1920px] mx-auto px-4 py-6 space-y-6">
-        {/* ========== 顶部表头：全局总统计卡片 ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">总任务数</p>
-            <p className="text-4xl font-bold text-gray-900">{totalStats.total}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">进行中</p>
-            <p className="text-4xl font-bold text-blue-600">{totalStats.inProgress}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">已完成</p>
-            <p className="text-4xl font-bold text-green-600">{totalStats.completed}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">已逾期</p>
-            <p className="text-4xl font-bold text-red-600">{totalStats.overdue}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">即将到期</p>
-            <p className="text-4xl font-bold text-orange-500">{totalStats.expiring}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <p className="text-gray-500 text-lg mb-2">未完成</p>
-            <p className="text-4xl font-bold text-purple-600">{totalStats.unfinished}</p>
-          </div>
-        </div>
-
-        {/* ========== 顶部表头：完成率统计 ========== */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">完成率统计</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-gray-500 text-base mb-2">总完成率</p>
-              <p className="text-4xl font-bold text-green-600">{completionRate.totalRate}%</p>
-              <p className="text-gray-400 text-sm mt-1">{totalStats.completed}/{totalStats.total}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-base mb-2">一级督办完成率</p>
-              <p className="text-4xl font-bold text-blue-600">{completionRate.level1Rate}%</p>
-              <p className="text-gray-400 text-sm mt-1">紧急程度：高</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-base mb-2">二级督办完成率</p>
-              <p className="text-4xl font-bold text-purple-600">{completionRate.level2Rate}%</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-base mb-2">三级督办完成率</p>
-              <p className="text-4xl font-bold text-orange-500">{completionRate.level3Rate}%</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ========== 筛选功能栏 ========== */}
-        <div className="bg-white rounded-xl shadow-sm p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 页面主体内容 - 全部可滚动，无固定遮挡 */}
+      <div className="px-4 py-4 space-y-4">
+        {/* ========== 筛选区域 - 非固定，随页面滚动，匹配截图样式 ========== */}
+        <div className="bg-white rounded-2xl p-4 space-y-3">
+          {/* 搜索框 */}
           <input
             type="text"
             placeholder="搜索任务名称、分项任务、经办人、责任单位"
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
           />
 
+          {/* 事业部筛选下拉框 */}
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 bg-gray-100 rounded-xl focus:outline-none text-base appearance-none bg-[url('data:image/svg+xml;utf8,<svg fill=%22%23333%22 height=%2224%22 viewBox=%220 0 24 24%22 width=%2224%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M7 10l5 5 5-5z%22/><path d=%22M0 0h24v24H0z%22 fill=%22none%22/></svg>')] bg-no-repeat bg-right-[12px] bg-center"
           >
             <option value="all">全部事业部</option>
             {departmentOptions.map(dept => (
@@ -188,10 +140,11 @@ export default function SupervisionSystemPage() {
             ))}
           </select>
 
+          {/* 责任单位筛选下拉框 */}
           <select
             value={unitFilter}
             onChange={(e) => setUnitFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 bg-gray-100 rounded-xl focus:outline-none text-base appearance-none bg-[url('data:image/svg+xml;utf8,<svg fill=%22%23333%22 height=%2224%22 viewBox=%220 0 24 24%22 width=%2224%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M7 10l5 5 5-5z%22/><path d=%22M0 0h24v24H0z%22 fill=%22none%22/></svg>')] bg-no-repeat bg-right-[12px] bg-center"
           >
             <option value="all">全部责任单位</option>
             {unitOptions.map(unit => (
@@ -199,10 +152,11 @@ export default function SupervisionSystemPage() {
             ))}
           </select>
 
+          {/* 任务状态筛选下拉框 */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 bg-gray-100 rounded-xl focus:outline-none text-base appearance-none bg-[url('data:image/svg+xml;utf8,<svg fill=%22%23333%22 height=%2224%22 viewBox=%220 0 24 24%22 width=%2224%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M7 10l5 5 5-5z%22/><path d=%22M0 0h24v24H0z%22 fill=%22none%22/></svg>')] bg-no-repeat bg-right-[12px] bg-center"
           >
             <option value="all">全部任务状态</option>
             {statusOptions.map(status => (
@@ -211,103 +165,82 @@ export default function SupervisionSystemPage() {
           </select>
         </div>
 
-        {/* ========== 核心内容区：左侧任务列表+右侧详情卡片 ========== */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 bg-white rounded-xl shadow-sm overflow-hidden">
-          {/* 左侧任务列表（和筛选结果联动） */}
-          <div className="lg:col-span-5 border-r border-gray-100 h-[calc(100vh-580px)] lg:h-[calc(100vh-520px)] overflow-y-auto">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => setSelectedTask(task)}
-                  className={`px-6 py-6 border-b border-gray-100 cursor-pointer transition-colors ${
-                    selectedTask.id === task.id ? 'bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* 任务层级 */}
-                    <div className="text-gray-600 font-medium text-lg whitespace-nowrap">
-                      {task.taskLevel}
-                    </div>
-                    {/* 任务名称+分项任务 */}
-                    <div className="flex-1 space-y-1">
-                      <p className="text-lg font-semibold text-gray-900">
-                        {task.taskName}
-                      </p>
-                      <p className="text-gray-600 text-base">
-                        {task.subTaskName}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="px-6 py-12 text-center text-gray-500">
-                暂无匹配的任务数据
+        {/* ========== 任务列表 - 移除任务层级展示，匹配截图样式 ========== */}
+        <div className="space-y-2">
+          {filteredTasks.length > 0 ? (
+            filteredTasks.map((task) => (
+              <div
+                key={task.id}
+                onClick={() => setSelectedTask(task)}
+                className={`bg-white rounded-2xl p-5 cursor-pointer transition-colors ${
+                  selectedTask.id === task.id ? 'border-2 border-blue-500' : 'border border-transparent'
+                }`}
+              >
+                <p className="text-xl font-semibold text-gray-900 mb-1">
+                  {task.taskName}
+                </p>
+                <p className="text-gray-500 text-lg">
+                  {task.subTaskName}
+                </p>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="bg-white rounded-2xl p-8 text-center text-gray-500 text-lg">
+              暂无匹配的任务数据
+            </div>
+          )}
+        </div>
 
-          {/* 右侧详情卡片，1:1匹配模板格式 */}
-          <div className="lg:col-span-7 h-[calc(100vh-580px)] lg:h-[calc(100vh-520px)] overflow-y-auto p-6">
-            <table className="w-full border-collapse">
-              <tbody>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 w-1/3 text-gray-700 font-medium text-lg">项目</td>
-                  <td className="px-6 py-4 w-2/3 text-gray-900 text-lg">详情</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">任务层级</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.taskLevel}任务</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">任务名称</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.taskName}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">分项任务</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.subTaskName}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">责任部门</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.department}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">责任单位</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.responsibleUnit}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">经办人</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.handler}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">当前状态</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.status}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">完成时限</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.deadline}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">任务维度</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.taskDimension}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-6 py-4 text-gray-700 font-medium">任务来源</td>
-                  <td className="px-6 py-4 text-gray-900">{selectedTask.taskSource}</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 text-gray-700 font-medium align-top">核心办结标准</td>
-                  <td className="px-6 py-4 text-gray-900 leading-relaxed">
-                    {selectedTask.finishStandard.map((item, index) => (
-                      <p key={index} className="mb-2 last:mb-0">
-                        {index + 1}. {item}
-                      </p>
-                    ))}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        {/* ========== 任务详情卡片 - 移除任务层级，匹配截图样式 ========== */}
+        <div className="bg-white rounded-2xl p-5 space-y-0">
+          {/* 详情条目 - 无任务层级字段 */}
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">任务名称</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.taskName}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">分项任务</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.subTaskName}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">责任部门</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.department}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">责任单位</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.responsibleUnit}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">经办人</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.handler}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">当前状态</span>
+            <span className={`text-lg font-medium flex-1 ${statusTextColorMap[selectedTask.status]}`}>
+              {selectedTask.status}
+            </span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">完成时限</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.deadline}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">任务维度</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.taskDimension}</span>
+          </div>
+          <div className="py-4 border-b border-gray-100 flex items-center">
+            <span className="text-gray-600 text-lg w-1/3">任务来源</span>
+            <span className="text-gray-900 text-lg flex-1">{selectedTask.taskSource}</span>
+          </div>
+          <div className="py-4">
+            <span className="text-gray-600 text-lg block mb-3">核心办结标准</span>
+            <div className="space-y-2">
+              {selectedTask.finishStandard.map((item, index) => (
+                <p key={index} className="text-gray-900 text-lg leading-relaxed">
+                  {index + 1}. {item}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -315,7 +248,7 @@ export default function SupervisionSystemPage() {
   );
 }
 
-// 完整41项任务数据，全字段标准化
+// 完整41项任务数据
 const tasks: Task[] = [
   {
     id: 1,
