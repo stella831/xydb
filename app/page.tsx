@@ -73,6 +73,7 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
     '一级': 'bg-purple-50 text-purple-600',
     '二级': 'bg-green-50 text-green-600',
     '三级': 'bg-orange-50 text-orange-600',
+    '重要': 'bg-teal-50 text-teal-600',
   };
 
   // 修改截止日期/办结标准时，自动重新计算状态
@@ -108,7 +109,7 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
         >
           {isExpanded ? '∨' : '>'}
         </span>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${levelMap[task.taskLevel]}`}>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${levelMap[task.taskLevel] || levelMap['一级']}`}>
           {task.taskLevel}
         </span>
         
@@ -146,8 +147,8 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
       {isExpanded && (
         <div className="mt-4 pt-3 border-t border-gray-100 ml-6">
           <div className="flex flex-wrap gap-3 mb-3 text-sm items-center">
-            <span className="text-gray-600">{task.department}</span>
-            <span className="font-medium text-gray-700">· {task.handler}</span>
+            <span className="text-gray-600">{task.department} | {task.responsibilityUnit}</span>
+            <span className="font-medium text-gray-700">· 经办人：{task.handler}</span>
 
             {isLoggedIn && !isEditing && (
               <button
@@ -169,15 +170,15 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
           {isEditing && (
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <span className="text-gray-500 font-medium text-sm block mb-1">部门</span>
+                <span className="text-gray-500 font-medium text-sm block mb-1">责任单位</span>
                 <input
-                  value={editData.department}
-                  onChange={(e) => setEditData({ ...editData, department: e.target.value })}
+                  value={editData.responsibilityUnit}
+                  onChange={(e) => setEditData({ ...editData, responsibilityUnit: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 />
               </div>
               <div>
-                <span className="text-gray-500 font-medium text-sm block mb-1">负责人</span>
+                <span className="text-gray-500 font-medium text-sm block mb-1">经办人</span>
                 <input
                   value={editData.handler}
                   onChange={(e) => setEditData({ ...editData, handler: e.target.value })}
@@ -229,8 +230,12 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
           {!isEditing ? (
             <>
               <div className="mb-3">
-                <span className="text-gray-500 font-medium text-sm block mb-1">办结标准：</span>
+                <span className="text-gray-500 font-medium text-sm block mb-1">办结标准（决胜收官目标）：</span>
                 <p className="text-gray-700 leading-relaxed text-sm">{task.finishStandard}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">任务维度/来源：</span>
+                <p className="text-gray-700 leading-relaxed text-sm">{task.taskDimension} | {task.taskSource}</p>
               </div>
               <div>
                 <span className="text-gray-500 font-medium text-sm block mb-1">情况说明：</span>
@@ -240,11 +245,27 @@ const TaskCard = ({ task, onUpdate, isLoggedIn }) => {
           ) : (
             <div className="space-y-3">
               <div>
-                <span className="text-gray-500 font-medium text-sm block mb-1">办结标准：</span>
+                <span className="text-gray-500 font-medium text-sm block mb-1">任务维度</span>
+                <input
+                  value={editData.taskDimension}
+                  onChange={(e) => setEditData({ ...editData, taskDimension: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">任务来源</span>
+                <input
+                  value={editData.taskSource}
+                  onChange={(e) => setEditData({ ...editData, taskSource: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium text-sm block mb-1">办结标准（决胜收官目标）：</span>
                 <textarea
                   value={editData.finishStandard}
                   onChange={(e) => setEditData({ ...editData, finishStandard: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[80px]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[100px]"
                 />
               </div>
               <div>
@@ -283,7 +304,7 @@ const getDefaultTaskStatus = (deadlineStr, finishStandard) => {
   const diffTime = deadline.getTime() - today.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // 0-7天为即将到期（严格遵循你的需求）
+  // 0-7天为即将到期（严格遵循需求）
   if (diffDays >= 0 && diffDays <= 7) {
     return '即将到期';
   }
@@ -312,42 +333,51 @@ export default function HomePage() {
   const levelRef = useRef(null);
   const statusRef = useRef(null);
 
-  // 全量任务初始数据
+  // 全量任务初始数据：原有数据 + 新增兆翔物业7条任务（序号35-41）
   const defaultTaskData = [
-    { id:1, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体营业收入4678万元；6月30日前完成9356万元；9月30日前完成22455万元；12月31日前完成37425.4万元', description:'暂无说明' },
-    { id:2, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', handler:'王锴荫', finishStandard:'3月31日前完成商管集团整体利润总额209.25万元；6月30日前完成502.19万元；9月30日前完成1004.38万元；12月31日前完成1673.97万元', description:'暂无说明' },
-    { id:3, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管物业营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'胡妍', finishStandard:'2026年完成代管物业收入29262.48万元（含奥莱492.77万元），其中：代管翔置业存量资产23596.43万元，翔业福州1327.5万元；福州空港楼外资产293.97万元；航空工业4044.58万元', description:'暂无说明' },
-    { id:4, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管房屋出租率', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'胡妍', finishStandard:'2026年代管物业房屋（含翔业国际大厦，不含砂之船奥莱项目）总可租面积918084.81㎡，对外总可租面积555493.86㎡，对外出租率85.63%', description:'暂无说明' },
-    { id:5, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管土地出租率', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'王之慧', finishStandard:'2026年代管翔业福州土地总可租面积243863.26㎡，对外总可租面积170600㎡，对外出租率17.45%', description:'暂无说明' },
-    { id:6, taskLevel:'一级', taskName:'五通商业新经济标杆项目打造工作', subTaskName:'五通商业新经济标杆项目打造', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'商服事业部', handler:'李晓炜', finishStandard:'9月30日前完成项目定位及规划方案，通过集团专题会并下发会议纪要', description:'暂无说明' },
-    { id:7, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'瀚澜楼茶博城', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'商服事业部', handler:'李泉', finishStandard:'3月31日前局部试营业；5月31日前全面试营业', description:'暂无说明' },
-    { id:8, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'码头二期侯船楼太合音乐', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'商服事业部', handler:'李晓炜', finishStandard:'3月31日力争试营业；5月31日正式营业', description:'暂无说明' },
-    { id:9, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'艾德航空产业园', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'姜吕斌', finishStandard:'3月31日前出租率85.5%；12月30日达90%', description:'暂无说明' },
-    { id:10, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'厦门国际航材中心', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'姜吕斌', finishStandard:'3月31日前出租率91%；12月31日达95%', description:'暂无说明' },
-    { id:11, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'翔业国际大厦', status:'即将到期', isStatusLocked: false, deadline:'2026/03/31', department:'创新事业部', handler:'曹冰涛', finishStandard:'3月31日前新增招商4360㎡，出租率65%', description:'2月28日已汇总并提交业主单位预审，待汇报定稿' },
-    { id:12, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'海丝羲缘楼', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'李泉', finishStandard:'3月31日前出租率82%；12月31日达85%', description:'暂无说明' },
-    { id:13, taskLevel:'一级', taskName:'宠物经济项目落地实施推进工作', subTaskName:'宠物经济线下平台1.1期', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'创新事业部', handler:'曹冰涛', finishStandard:'6月30日前与首个合作方签订协议', description:'暂无说明' },
-    { id:14, taskLevel:'一级', taskName:'厦门市内免税店开业推进工作', subTaskName:'厦门市内免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', handler:'林宇恒', finishStandard:'6月30日前完成参股运营并开业', description:'暂无说明' },
-    { id:15, taskLevel:'一级', taskName:'五通码头免税店开业推进工作', subTaskName:'五通码头免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', handler:'林宇恒', finishStandard:'6月30日前正式营业并转入投后管理', description:'暂无说明' },
-    { id:16, taskLevel:'一级', taskName:'福州长乐国际机场免税店开业推进工作', subTaskName:'福州长乐国际机场免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', handler:'林宇恒', finishStandard:'6月30日前根据转场进度组织开业', description:'暂无说明' },
-    { id:17, taskLevel:'一级', taskName:'免税牌照攻坚推进工作', subTaskName:'免税牌照攻坚工作', status:'进行中', isStatusLocked: false, deadline:'2026/12/20', department:'免税事业部', handler:'林宇恒', finishStandard:'12月20日前形成年度会议纪要并汇报', description:'暂无说明' },
-    { id:18, taskLevel:'一级', taskName:'参股投资业务经营指标推进工作', subTaskName:'参股投资业务经营业绩指标', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'免税事业部', handler:'林宇恒', finishStandard:'12月31日前实现全口径销售额18586万元', description:'暂无说明' },
-    { id:19, taskLevel:'一级', taskName:'五通奥莱项目经营业务推进工作', subTaskName:'经营移交', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'商服事业部', handler:'李晓炜', finishStandard:'6月30日前与砂之船完成移交', description:'暂无说明' },
-    { id:20, taskLevel:'一级', taskName:'五通奥莱项目经营业务推进工作', subTaskName:'经营推进', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'李晓炜', finishStandard:'12月31日完成双诞活动策划及执行', description:'暂无说明' },
-    { id:21, taskLevel:'一级', taskName:'海峡新岸仙岳路跨线桥推进工作', subTaskName:'仙岳五通跨线桥推进', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'周晓萍', finishStandard:'12月31日前完成外部主管部门审批', description:'暂无说明' },
-    { id:22, taskLevel:'一级', taskName:'商管与物管业务效能优化工作', subTaskName:'组织架构整合优化', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'党务人力行政部', handler:'林杉', finishStandard:'6月30日前完成组织架构优化并实施', description:'暂无说明' },
-    { id:23, taskLevel:'一级', taskName:'翔业商管与兆翔置业工作界面明确', subTaskName:'工作边界梳理、经营指明确及委托管理合同签订', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'商服事业部', handler:'胡妍', finishStandard:'6月30日前完成兆翔置业资产委托合同签订', description:'暂无说明' },
-    { id:24, taskLevel:'一级', taskName:'机场城市一体化推进工作', subTaskName:'机场城市一体化', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'物服事业部', handler:'林健', finishStandard:'9月30日前完成物业服务方案并通过审议', description:'暂无说明' },
-    { id:25, taskLevel:'一级', taskName:'“一线“高崎片区战略布局推进工作', subTaskName:'打造高崎片区文化产业新IP', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', handler:'李泉', finishStandard:'12月31日前举办“厦门美术季”', description:'暂无说明' },
-    { id:26, taskLevel:'一级', taskName:'厦泉金先行示范区战略先行布局工作', subTaskName:'“一岛”大嶝岛战略布局推进', status:'进行中', isStatusLocked: false, deadline:'2026/11/30', department:'免税事业部', handler:'林涛', finishStandard:'11月30日前形成阶段性研究报告', description:'暂无说明' },
-    { id:27, taskLevel:'一级', taskName:'翔安机场免税店转场运营推进工作', subTaskName:'翔安机场免税店转场运营', status:'进行中', isStatusLocked: false, deadline:'2026/12/24', department:'免税事业部', handler:'林宇恒', finishStandard:'12月24日前推进完成免税店开业运营', description:'暂无说明' },
-    { id:28, taskLevel:'一级', taskName:'商管集团数字化推进工作', subTaskName:'商业管理系统上线', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', handler:'李森元', finishStandard:'12月31日前完成ERP系统财务管理模块上线', description:'暂无说明' },
-    { id:29, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'调试勘查', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'物服事业部', handler:'林健', finishStandard:'5月31日完成机电设备全量勘查并形成总结', description:'暂无说明' },
-    { id:30, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'开荒保洁招标', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'物服事业部', handler:'林健', finishStandard:'6月30日完成中标单位最终确认', description:'暂无说明' },
-    { id:31, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'航站楼保洁、手推车招标', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'物服事业部', handler:'林健', finishStandard:'9月30日完成中标单位确认并签约', description:'暂无说明' },
-    { id:32, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'建立机电设备运维体系', status:'进行中', isStatusLocked: false, deadline:'2026/09/20', department:'物服事业部', handler:'林健', finishStandard:'9月20日完成运行手册定稿', description:'暂无说明' },
-    { id:33, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'机电设备保障', status:'即将到期', isStatusLocked: false, deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成人员取证及演练整改', description:'暂无说明' },
-    { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:'即将到期', isStatusLocked: false, deadline:'2026/06/10', department:'物服事业部', handler:'林健', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
+    // 原有34条任务
+    { id:1, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', responsibilityUnit:'', handler:'王锴荫', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'3月31日前完成商管集团整体营业收入4678万元；6月30日前完成9356万元；9月30日前完成22455万元；12月31日前完成37425.4万元', description:'暂无说明' },
+    { id:2, taskLevel:'一级', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', responsibilityUnit:'', handler:'王锴荫', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'3月31日前完成商管集团整体利润总额209.25万元；6月30日前完成502.19万元；9月30日前完成1004.38万元；12月31日前完成1673.97万元', description:'暂无说明' },
+    { id:3, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管物业营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'胡妍', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'2026年完成代管物业收入29262.48万元（含奥莱492.77万元），其中：代管翔置业存量资产23596.43万元，翔业福州1327.5万元；福州空港楼外资产293.97万元；航空工业4044.58万元', description:'暂无说明' },
+    { id:4, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管房屋出租率', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'胡妍', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'2026年代管物业房屋（含翔业国际大厦，不含砂之船奥莱项目）总可租面积918084.81㎡，对外总可租面积555493.86㎡，对外出租率85.63%', description:'暂无说明' },
+    { id:5, taskLevel:'一级', taskName:'代管物业业绩指标推进工作', subTaskName:'代管土地出租率', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'王之慧', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'2026年代管翔业福州土地总可租面积243863.26㎡，对外总可租面积170600㎡，对外出租率17.45%', description:'暂无说明' },
+    { id:6, taskLevel:'一级', taskName:'五通商业新经济标杆项目打造工作', subTaskName:'五通商业新经济标杆项目打造', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'商服事业部', responsibilityUnit:'', handler:'李晓炜', taskDimension:'项目打造', taskSource:'集团督办', finishStandard:'9月30日前完成项目定位及规划方案，通过集团专题会并下发会议纪要', description:'暂无说明' },
+    { id:7, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'瀚澜楼茶博城', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'商服事业部', responsibilityUnit:'', handler:'李泉', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日前局部试营业；5月31日前全面试营业', description:'暂无说明' },
+    { id:8, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'码头二期侯船楼太合音乐', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'商服事业部', responsibilityUnit:'', handler:'李晓炜', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日力争试营业；5月31日正式营业', description:'暂无说明' },
+    { id:9, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'艾德航空产业园', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'姜吕斌', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日前出租率85.5%；12月30日达90%', description:'暂无说明' },
+    { id:10, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'厦门国际航材中心', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'姜吕斌', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日前出租率91%；12月31日达95%', description:'暂无说明' },
+    { id:11, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'翔业国际大厦', status:'即将到期', isStatusLocked: false, deadline:'2026/03/31', department:'创新事业部', responsibilityUnit:'', handler:'曹冰涛', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日前新增招商4360㎡，出租率65%', description:'2月28日已汇总并提交业主单位预审，待汇报定稿' },
+    { id:12, taskLevel:'一级', taskName:'重点项目载体去化工作', subTaskName:'海丝羲缘楼', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'李泉', taskDimension:'项目去化', taskSource:'集团督办', finishStandard:'3月31日前出租率82%；12月31日达85%', description:'暂无说明' },
+    { id:13, taskLevel:'一级', taskName:'宠物经济项目落地实施推进工作', subTaskName:'宠物经济线下平台1.1期', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'创新事业部', responsibilityUnit:'', handler:'曹冰涛', taskDimension:'项目落地', taskSource:'集团督办', finishStandard:'6月30日前与首个合作方签订协议', description:'暂无说明' },
+    { id:14, taskLevel:'一级', taskName:'厦门市内免税店开业推进工作', subTaskName:'厦门市内免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'项目开业', taskSource:'集团督办', finishStandard:'6月30日前完成参股运营并开业', description:'暂无说明' },
+    { id:15, taskLevel:'一级', taskName:'五通码头免税店开业推进工作', subTaskName:'五通码头免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'项目开业', taskSource:'集团督办', finishStandard:'6月30日前正式营业并转入投后管理', description:'暂无说明' },
+    { id:16, taskLevel:'一级', taskName:'福州长乐国际机场免税店开业推进工作', subTaskName:'福州长乐国际机场免税店开业', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'项目开业', taskSource:'集团督办', finishStandard:'6月30日前根据转场进度组织开业', description:'暂无说明' },
+    { id:17, taskLevel:'一级', taskName:'免税牌照攻坚推进工作', subTaskName:'免税牌照攻坚工作', status:'进行中', isStatusLocked: false, deadline:'2026/12/20', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'牌照攻坚', taskSource:'集团督办', finishStandard:'12月20日前形成年度会议纪要并汇报', description:'暂无说明' },
+    { id:18, taskLevel:'一级', taskName:'参股投资业务经营指标推进工作', subTaskName:'参股投资业务经营业绩指标', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'经营指标', taskSource:'集团督办', finishStandard:'12月31日前实现全口径销售额18586万元', description:'暂无说明' },
+    { id:19, taskLevel:'一级', taskName:'五通奥莱项目经营业务推进工作', subTaskName:'经营移交', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'商服事业部', responsibilityUnit:'', handler:'李晓炜', taskDimension:'项目经营', taskSource:'集团督办', finishStandard:'6月30日前与砂之船完成移交', description:'暂无说明' },
+    { id:20, taskLevel:'一级', taskName:'五通奥莱项目经营业务推进工作', subTaskName:'经营推进', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'李晓炜', taskDimension:'项目经营', taskSource:'集团督办', finishStandard:'12月31日完成双诞活动策划及执行', description:'暂无说明' },
+    { id:21, taskLevel:'一级', taskName:'海峡新岸仙岳路跨线桥推进工作', subTaskName:'仙岳五通跨线桥推进', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'周晓萍', taskDimension:'项目推进', taskSource:'集团督办', finishStandard:'12月31日前完成外部主管部门审批', description:'暂无说明' },
+    { id:22, taskLevel:'一级', taskName:'商管与物管业务效能优化工作', subTaskName:'组织架构整合优化', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'党务人力行政部', responsibilityUnit:'', handler:'林杉', taskDimension:'效能优化', taskSource:'集团督办', finishStandard:'6月30日前完成组织架构优化并实施', description:'暂无说明' },
+    { id:23, taskLevel:'一级', taskName:'翔业商管与兆翔置业工作界面明确', subTaskName:'工作边界梳理、经营指明确及委托管理合同签订', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'商服事业部', responsibilityUnit:'', handler:'胡妍', taskDimension:'工作梳理', taskSource:'集团督办', finishStandard:'6月30日前完成兆翔置业资产委托合同签订', description:'暂无说明' },
+    { id:24, taskLevel:'一级', taskName:'机场城市一体化推进工作', subTaskName:'机场城市一体化', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'一体化推进', taskSource:'集团督办', finishStandard:'9月30日前完成物业服务方案并通过审议', description:'暂无说明' },
+    { id:25, taskLevel:'一级', taskName:'“一线“高崎片区战略布局推进工作', subTaskName:'打造高崎片区文化产业新IP', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'商服事业部', responsibilityUnit:'', handler:'李泉', taskDimension:'战略布局', taskSource:'集团督办', finishStandard:'12月31日前举办“厦门美术季”', description:'暂无说明' },
+    { id:26, taskLevel:'一级', taskName:'厦泉金先行示范区战略先行布局工作', subTaskName:'“一岛”大嶝岛战略布局推进', status:'进行中', isStatusLocked: false, deadline:'2026/11/30', department:'免税事业部', responsibilityUnit:'', handler:'林涛', taskDimension:'战略布局', taskSource:'集团督办', finishStandard:'11月30日前形成阶段性研究报告', description:'暂无说明' },
+    { id:27, taskLevel:'一级', taskName:'翔安机场免税店转场运营推进工作', subTaskName:'翔安机场免税店转场运营', status:'进行中', isStatusLocked: false, deadline:'2026/12/24', department:'免税事业部', responsibilityUnit:'', handler:'林宇恒', taskDimension:'转场运营', taskSource:'集团督办', finishStandard:'12月24日前推进完成免税店开业运营', description:'暂无说明' },
+    { id:28, taskLevel:'一级', taskName:'商管集团数字化推进工作', subTaskName:'商业管理系统上线', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', responsibilityUnit:'', handler:'李森元', taskDimension:'数字化推进', taskSource:'集团督办', finishStandard:'12月31日前完成ERP系统财务管理模块上线', description:'暂无说明' },
+    { id:29, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'调试勘查', status:'即将到期', isStatusLocked: false, deadline:'2026/05/31', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'5月31日完成机电设备全量勘查并形成总结', description:'暂无说明' },
+    { id:30, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'开荒保洁招标', status:'即将到期', isStatusLocked: false, deadline:'2026/06/30', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'6月30日完成中标单位最终确认', description:'暂无说明' },
+    { id:31, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'航站楼保洁、手推车招标', status:'进行中', isStatusLocked: false, deadline:'2026/09/30', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'9月30日完成中标单位确认并签约', description:'暂无说明' },
+    { id:32, taskLevel:'一级', taskName:'翔安机场环境保障推进工作', subTaskName:'建立机电设备运维体系', status:'进行中', isStatusLocked: false, deadline:'2026/09/20', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'9月20日完成运行手册定稿', description:'暂无说明' },
+    { id:33, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'机电设备保障', status:'即将到期', isStatusLocked: false, deadline:'2026/06/10', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'6月10日前完成人员取证及演练整改', description:'暂无说明' },
+    { id:34, taskLevel:'一级', taskName:'福州机场二期环境保障推进工作', subTaskName:'物业服务保障', status:'即将到期', isStatusLocked: false, deadline:'2026/06/10', department:'物服事业部', responsibilityUnit:'', handler:'林健', taskDimension:'环境保障', taskSource:'集团督办', finishStandard:'6月10日前完成保洁转场及综合演练', description:'暂无说明' },
+    // 新增：兆翔物业7条任务（2026年集团攻坚专项行动二级任务）
+    { id:35, taskLevel:'重要', taskName:'经营计划指标推进工作', subTaskName:'营业收入', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'黄森岩', taskDimension:'经营指标突破', taskSource:'2026年董事会', finishStandard:'12月31日前完成营业收入34593.66万元', description:'暂无说明' },
+    { id:36, taskLevel:'重要', taskName:'经营计划指标推进工作', subTaskName:'利润总额', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'黄森岩', taskDimension:'经营指标突破', taskSource:'2026年董事会', finishStandard:'12月31日前完成利润总额2105.51万元', description:'暂无说明' },
+    { id:37, taskLevel:'重要', taskName:'应收账款“四清”工作', subTaskName:'应收账款“四清”工作', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'财务管理部', responsibilityUnit:'兆翔物业', handler:'王锴荫', taskDimension:'经营深化改革', taskSource:'2026年董事会', finishStandard:'12月31日前收回536.12万元', description:'暂无说明' },
+    { id:38, taskLevel:'重要', taskName:'机电业务外部业务拓展推进工作', subTaskName:'2026年外部业务拓展', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'黄森岩', taskDimension:'市场开拓攻坚', taskSource:'2026年董事会', finishStandard:'12月31日前累计完成外部合同签约额10000万元', description:'暂无说明' },
+    { id:39, taskLevel:'重要', taskName:'资质提升推进工作', subTaskName:'配电领域资质升级以及新资质获取', status:'进行中', isStatusLocked: false, deadline:'2026/11/30', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'张晨岚', taskDimension:'市场开拓攻坚', taskSource:'2026年董事会', finishStandard:'积累2027年升级承装（修、试）电力设施资质业绩：11月30日前三级承装（修、试）电力设施许可证二级需至少承接1项变（配）电的维修或试验活动业绩，以及1项线路设施的维修或试验活动业绩', description:'暂无说明' },
+    { id:40, taskLevel:'重要', taskName:'机电业务重点项目实施工作', subTaskName:'重点施工项目按期完成交付·翔安机场口岸通关设施设备项目一标段', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'张晨岚', taskDimension:'机场投运筹备', taskSource:'2026年董事会，一夜转场和二期投运专题会', finishStandard:'11月30日完成高崎机场入境无感通过先行先试设备的搬迁方案，待转场后进行搬迁、修复及安调工作', description:'暂无说明' },
+    { id:41, taskLevel:'重要', taskName:'机电业务重点项目实施工作', subTaskName:'新机场货站工艺设备项目', status:'进行中', isStatusLocked: false, deadline:'2026/12/31', department:'机电事业部', responsibilityUnit:'兆翔物业', handler:'张晨岚', taskDimension:'机场投运筹备', taskSource:'2026年董事会，一夜转场和二期投运专题会', finishStandard:'10月31日整理竣工资料，配合预结算工作；11月30日完成升降打板台、智能分拣线先行先试设备的搬迁方案，待转场后进行搬迁、修复及安调工作', description:'暂无说明' }
   ];
 
   const [taskList, setTaskList] = useState([]);
@@ -406,7 +436,12 @@ export default function HomePage() {
     return ['全部事业部', ...depts];
   }, [taskList]);
 
-  const levelList = ['全部等级', '一级', '二级', '三级'];
+  // 自动提取任务等级（含原有一级+新增重要）
+  const levelList = useMemo(() => {
+    const levels = Array.from(new Set(taskList.map(item => item.taskLevel)));
+    return ['全部等级', ...levels];
+  }, [taskList]);
+  
   const statusList = ['全部状态', '进行中', '已完成', '未完成', '已逾期', '即将到期'];
 
   // 顶部统计数据
@@ -429,7 +464,7 @@ export default function HomePage() {
     return { total, doing, finished, overdue, expiring, unfinished };
   }, [taskList]);
 
-  // 多条件筛选
+  // 多条件筛选（支持搜索责任单位/经办人/任务维度等）
   const filteredTaskList = useMemo(() => {
     return taskList.filter(task => {
       if (selectedDepartment !== '全部事业部' && task.department !== selectedDepartment) return false;
@@ -441,6 +476,8 @@ export default function HomePage() {
           || task.subTaskName.toLowerCase().includes(key)
           || task.handler.toLowerCase().includes(key)
           || task.department.toLowerCase().includes(key)
+          || task.responsibilityUnit.toLowerCase().includes(key)
+          || task.taskDimension.toLowerCase().includes(key)
           || task.description.toLowerCase().includes(key);
         if (!match) return false;
       }
@@ -642,7 +679,7 @@ export default function HomePage() {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
               <input
                 type="text"
-                placeholder="搜索关键词..."
+                placeholder="搜索关键词（责任单位/经办人/任务名等）..."
                 value={searchKey}
                 onChange={(e) => setSearchKey(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
