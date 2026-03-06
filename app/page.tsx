@@ -950,25 +950,12 @@ export default function SupervisionSystemPage() {
     return { total, inProgress, completed, overdue, expiring, unfinished };
   }, [tasksWithStatus]);
 
-  // 完成率统计
+  // 完成率统计（仅保留总完成率计算，渲染时只用到总完成率）
   const completionRate = useMemo(() => {
     const total = tasksWithStatus.length;
     const completed = totalStats.completed;
     const totalRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0.00';
-
-    const level1Tasks = tasksWithStatus.filter(t => t.supervisionLevel === '一级');
-    const level1Completed = level1Tasks.filter(t => t.autoStatus === '已完成').length;
-    const level1Rate = level1Tasks.length > 0 ? ((level1Completed / level1Tasks.length) * 100).toFixed(2) : '0.00';
-
-    const level2Tasks = tasksWithStatus.filter(t => t.supervisionLevel === '二级');
-    const level2Completed = level2Tasks.filter(t => t.autoStatus === '已完成').length;
-    const level2Rate = level2Tasks.length > 0 ? ((level2Completed / level2Tasks.length) * 100).toFixed(2) : '0.00';
-
-    const level3Tasks = tasksWithStatus.filter(t => t.supervisionLevel === '三级');
-    const level3Completed = level3Tasks.filter(t => t.autoStatus === '已完成').length;
-    const level3Rate = level3Tasks.length > 0 ? ((level3Completed / level3Tasks.length) * 100).toFixed(2) : '0.00';
-
-    return { totalRate, level1Rate, level2Rate, level3Rate };
+    return { totalRate };
   }, [tasksWithStatus, totalStats]);
 
   // 筛选选项提取
@@ -1094,7 +1081,7 @@ export default function SupervisionSystemPage() {
 
       {/* 页面主体内容 */}
       <div className="px-4 py-4 space-y-4">
-        {/* 顶部统计卡片 */}
+        {/* 顶部统计卡片（完全不变） */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-5">
             <p className="text-gray-500 text-base mb-1">总任务数</p>
@@ -1122,32 +1109,17 @@ export default function SupervisionSystemPage() {
           </div>
         </div>
 
-        {/* 完成率统计 */}
+        {/* ========== 修改后的完成率统计（仅保留总完成率，删除分级督办） ========== */}
         <div className="bg-white rounded-2xl p-5">
           <h3 className="text-lg font-bold text-gray-900 mb-4">完成率统计</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-gray-500 text-sm mb-1">总完成率</p>
-              <p className="text-3xl font-bold text-green-600">{completionRate.totalRate}%</p>
-              <p className="text-gray-400 text-xs mt-1">{totalStats.completed}/{totalStats.total}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm mb-1">一级督办完成率</p>
-              <p className="text-3xl font-bold text-blue-600">{completionRate.level1Rate}%</p>
-              <p className="text-gray-400 text-xs mt-1">紧急程度：高</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm mb-1">二级督办完成率</p>
-              <p className="text-3xl font-bold text-purple-600">{completionRate.level2Rate}%</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm mb-1">三级督办完成率</p>
-              <p className="text-3xl font-bold text-orange-500">{completionRate.level3Rate}%</p>
-            </div>
+          <div>
+            <p className="text-gray-500 text-base mb-1">总完成率</p>
+            <p className="text-4xl font-bold text-green-600">{completionRate.totalRate}%</p>
+            <p className="text-gray-400 text-sm mt-1">{totalStats.completed}/{totalStats.total}</p>
           </div>
         </div>
 
-        {/* 筛选区域 */}
+        {/* 筛选区域（完全不变） */}
         <div className="bg-white rounded-2xl p-4 space-y-3">
           <input
             type="text"
@@ -1190,7 +1162,7 @@ export default function SupervisionSystemPage() {
           </div>
         </div>
 
-        {/* 任务列表 */}
+        {/* 任务列表（完全不变） */}
         <div className="space-y-2">
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task) => (
@@ -1220,7 +1192,7 @@ export default function SupervisionSystemPage() {
         </div>
       </div>
 
-      {/* ========== 全屏详情弹窗（覆盖当前页面，带关闭按钮） ========== */}
+      {/* 全屏详情弹窗（完全不变） */}
       {showDetailModal && selectedTask && (
         <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
           {/* 弹窗顶部栏 */}
